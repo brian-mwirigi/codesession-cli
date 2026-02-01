@@ -1,11 +1,11 @@
 {
-  "name": "devsession",
+  "name": "codesession-cli",
   "version": "1.0.0",
   "description": "Track your AI coding sessions: time, files, commits, AI costs",
   "main": "dist/index.js",
   "bin": {
-    "devsession": "./dist/index.js",
-    "ds": "./dist/index.js"
+    "codesession": "./dist/index.js",
+    "cs": "./dist/index.js"
   },
   "scripts": {
     "build": "tsc",

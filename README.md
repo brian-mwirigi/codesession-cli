@@ -1,4 +1,4 @@
-# DevSession
+# codesession
 
 Track your AI coding sessions: time, files, commits, and AI costs.
 
@@ -15,24 +15,24 @@ Track your AI coding sessions: time, files, commits, and AI costs.
 
 ```bash
 # Install
-npm install -g devsession
+npm install -g codesession
 
 # Start a session
-ds start "Build user auth"
+cs start "Build user auth"
 
 # Code away... (files, commits tracked automatically)
 
 # End session
-ds end -n "Completed basic auth flow"
+cs end -n "Completed basic auth flow"
 
 # View session
-ds show
+cs show
 ```
 
 ## Installation
 
 ```bash
-npm install -g devsession
+npm install -g codesession
 ```
 
 ## Usage
@@ -41,7 +41,7 @@ npm install -g devsession
 
 ```bash
 # Start tracking
-ds start "Feature name"
+cs start "Feature name"
 
 # Automatically tracks:
 # - File changes in real-time
@@ -53,7 +53,7 @@ ds start "Feature name"
 
 ```bash
 # End with notes
-ds end -n "Completed feature X"
+cs end -n "Completed feature X"
 
 # View summary automatically
 ```
@@ -62,46 +62,46 @@ ds end -n "Completed feature X"
 
 ```bash
 # Show last session
-ds show
+cs show
 
 # Show specific session
-ds show 5
+cs show 5
 
 # Show with details
-ds show --files --commits
+cs show --files --commits
 
 # List recent sessions
-ds list
+cs list
 
 # List more
-ds list -l 20
+cs list -l 20
 ```
 
 ### Statistics
 
 ```bash
 # Overall stats
-ds stats
+cs stats
 ```
 
 ### Log AI Usage
 
 ```bash
 # Manually log AI usage (or integrate with APIs)
-ds log-ai -p anthropic -m claude-3.5-sonnet -t 15000 -c 0.105
+cs log-ai -p anthropic -m claude-3.5-sonnet -t 15000 -c 0.105
 ```
 
 ### Check Status
 
 ```bash
 # See active session
-ds status
+cs status
 ```
 
 ## Example Output
 
 ```bash
-$ ds show
+$ cs show
 
 Session: Build user auth
 
@@ -143,7 +143,7 @@ Show concrete evidence of shipping speed.
 
 ```bash
 # Track tokens with tokencost
-tc list --json | jq -r '.[] | "ds log-ai -p \(.provider) -m \(.model) -t \(.totalTokens) -c \(.cost)"'
+tc list --json | jq -r '.[] | "cs log-ai -p \(.provider) -m \(.model) -t \(.totalTokens) -c \(.cost)"'
 ```
 
 ### With Git Hooks
@@ -153,12 +153,12 @@ Create `.git/hooks/post-commit`:
 ```bash
 #!/bin/sh
 # Auto-log commits to active session
-ds status > /dev/null 2>&1
+cs status > /dev/null 2>&1
 ```
 
 ## Data Storage
 
-All data stored locally in `~/.devsession/sessions.db` (SQLite).
+All data stored locally in `~/.codesession/sessions.db` (SQLite).
 
 No data sent anywhere. 100% privacy.
 
@@ -166,8 +166,8 @@ No data sent anywhere. 100% privacy.
 
 ```bash
 # Clone
-git clone https://github.com/brian-mwirigi/devsession.git
-cd devsession
+git clone https://github.com/brian-mwirigi/codesession.git
+cd codesession
 
 # Install
 npm install
@@ -180,7 +180,7 @@ npm run build
 
 # Test
 npm link
-ds start "My session"
+cs start "My session"
 ```
 
 ## License
