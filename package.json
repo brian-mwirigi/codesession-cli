@@ -1,0 +1,46 @@
+{
+  "name": "devsession",
+  "version": "1.0.0",
+  "description": "Track your AI coding sessions: time, files, commits, AI costs",
+  "main": "dist/index.js",
+  "bin": {
+    "devsession": "./dist/index.js",
+    "ds": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "ai",
+    "coding",
+    "session",
+    "tracker",
+    "productivity",
+    "git",
+    "time-tracking",
+    "cli"
+  ],
+  "author": "Brian Mwirigi",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "commander": "^11.1.0",
+    "better-sqlite3": "^9.2.2",
+    "cli-table3": "^0.6.3",
+    "date-fns": "^3.0.6",
+    "chokidar": "^3.5.3",
+    "simple-git": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.8",
+    "@types/node": "^20.10.6",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
