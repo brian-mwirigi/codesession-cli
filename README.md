@@ -13,13 +13,13 @@
 
 ---
 
-## 🤔 The Problem
+##  The Problem
 
 You coded for 4 hours today. But on what? Which features? How much did AI help?
 
 **You have no data.**
 
-## ✨ The Solution
+##  The Solution
 
 Track everything. One command to start, one to end.
 
@@ -51,7 +51,7 @@ cs end
 npm install -g codesession-cli
 ```
 
-## 🚀 Usage
+##  Usage
 
 ### Start a Session
 
