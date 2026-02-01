@@ -34,7 +34,6 @@ cs end
 # Session: 2h 34m • 12 files • 3 commits • $2.45 AI cost
 ```
 
-> **Demo:** _[Add GIF here showing session tracking]_
 
 ## Features
 
