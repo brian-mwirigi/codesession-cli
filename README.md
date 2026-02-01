@@ -1,6 +1,40 @@
-# codesession
+<div align="center">
+  <h1>codesession-cli</h1>
+  <p><strong>Know exactly how you spend your coding time</strong></p>
+  
+  <p>
+    <a href="https://www.npmjs.com/package/codesession-cli"><img src="https://img.shields.io/npm/v/codesession-cli?color=brightgreen" alt="npm version"></a>
+    <a href="https://www.npmjs.com/package/codesession-cli"><img src="https://img.shields.io/npm/dm/codesession-cli" alt="npm downloads"></a>
+    <a href="https://github.com/brian-mwirigi/codesession-cli/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/codesession-cli" alt="license"></a>
+  </p>
 
-Track your AI coding sessions: time, files, commits, and AI costs.
+  <p><em>Track time • Monitor files • Log commits • Calculate AI costs</em></p>
+</div>
+
+---
+
+## 🤔 The Problem
+
+You coded for 4 hours today. But on what? Which features? How much did AI help?
+
+**You have no data.**
+
+## ✨ The Solution
+
+Track everything. One command to start, one to end.
+
+```bash
+# Start tracking
+cs start "Build user auth"
+
+# Code... (automatic tracking)
+
+# End and see stats
+cs end
+# Session: 2h 34m • 12 files • 3 commits • $2.45 AI cost
+```
+
+> **Demo:** _[Add GIF here showing session tracking]_
 
 ## Features
 
@@ -11,31 +45,13 @@ Track your AI coding sessions: time, files, commits, and AI costs.
 - **Statistics** - View productivity metrics
 - **Local Storage** - All data stored locally in SQLite
 
-## Quick Start
-
-```bash
-# Install
-npm install -g codesession
-
-# Start a session
-cs start "Build user auth"
-
-# Code away... (files, commits tracked automatically)
-
-# End session
-cs end -n "Completed basic auth flow"
-
-# View session
-cs show
-```
-
 ## Installation
 
 ```bash
-npm install -g codesession
+npm install -g codesession-cli
 ```
 
-## Usage
+## 🚀 Usage
 
 ### Start a Session
 
