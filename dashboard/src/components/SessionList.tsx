@@ -68,7 +68,7 @@ export default function SessionList({ onSessionClick }: Props) {
   };
 
   const handleExport = (format: 'json' | 'csv') => {
-    window.open(`/api/export?format=${format}`, '_blank');
+    window.open(`/api/v1/export?format=${format}`, '_blank');
   };
 
   return (

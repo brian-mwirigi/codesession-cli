@@ -1,9 +1,10 @@
-import express from 'express';
+import express, { Request, Response, NextFunction, Router } from 'express';
 import { join } from 'path';
 import { exec, execSync } from 'child_process';
 import { createServer } from 'net';
 import { existsSync, readFileSync, writeFileSync, unlinkSync, mkdirSync } from 'fs';
 import { homedir } from 'os';
+import { randomBytes } from 'crypto';
 import {
   getStats, getActiveSessions,
   getSessionsPaginated, getSessionDetail,
@@ -25,42 +26,29 @@ interface DashboardOptions {
 const PID_DIR = join(homedir(), '.codesession');
 const pidFilePath = (port: number) => join(PID_DIR, `dashboard-${port}.pid`);
 
-/** Write our own PID to a file so we can identify stale instances later. */
 function writePidFile(port: number): void {
   mkdirSync(PID_DIR, { recursive: true });
   writeFileSync(pidFilePath(port), `${process.pid}\n`, 'utf-8');
 }
 
-/** Remove PID file on shutdown. */
 function removePidFile(port: number): void {
   try { unlinkSync(pidFilePath(port)); } catch (_) { /* already gone */ }
 }
 
-/**
- * Read PID from our pid file for the given port.
- * Returns the PID if the file exists and the process is still running, else null.
- */
 function readOwnPid(port: number): number | null {
   const file = pidFilePath(port);
   if (!existsSync(file)) return null;
   try {
     const pid = parseInt(readFileSync(file, 'utf-8').trim(), 10);
     if (isNaN(pid) || pid <= 0) return null;
-    // Signal 0 = existence check, throws if process is gone
-    process.kill(pid, 0);
+    process.kill(pid, 0); // existence check
     return pid;
   } catch (_) {
-    // Process is gone -- clean up stale pid file
     try { unlinkSync(file); } catch (_) {}
     return null;
   }
 }
 
-/**
- * Kill a previous dashboard instance that WE started, identified by PID file.
- * Only kills processes we own -- never blindly kills whatever is on the port.
- * Returns true if a process was found and killed.
- */
 function killOwnStaleProcess(port: number): boolean {
   const pid = readOwnPid(port);
   if (pid === null) return false;
@@ -74,7 +62,6 @@ function killOwnStaleProcess(port: number): boolean {
     removePidFile(port);
     return true;
   } catch (_) {
-    // Process already gone
     removePidFile(port);
     return false;
   }
@@ -96,31 +83,12 @@ function isPortInUse(port: number): Promise<boolean> {
   });
 }
 
-// ── Main ───────────────────────────────────────────────────
+// ── API route builder ──────────────────────────────────────
 
-export function startDashboard(options: DashboardOptions = {}): void {
-  const port = options.port || 3737;
-  const host = options.host || '127.0.0.1';
-  const shouldOpen = options.open !== false;
-  const jsonMode = options.json === true;
+function buildApiRouter(): Router {
+  const router = Router();
 
-  // Warn loudly if binding to all interfaces
-  if (host === '0.0.0.0') {
-    const msg = 'WARNING: Binding to 0.0.0.0 exposes session data (costs, repo activity, file paths) to your entire network. Use only on trusted networks.';
-    if (jsonMode) {
-      process.stderr.write(JSON.stringify({ warning: msg }) + '\n');
-    } else {
-      console.warn(`\n  ${msg}\n`);
-    }
-  }
-
-  const app = express();
-  const staticDir = join(__dirname, 'dashboard-ui');
-  app.use(express.static(staticDir));
-
-  // ── API routes ───────────────────────────────────────────
-
-  app.get('/api/stats', (_req, res) => {
+  router.get('/stats', (_req, res) => {
     try {
       const stats = getStats();
       const active = getActiveSessions();
@@ -130,7 +98,7 @@ export function startDashboard(options: DashboardOptions = {}): void {
     }
   });
 
-  app.get('/api/sessions', (req, res) => {
+  router.get('/sessions', (req, res) => {
     try {
       const limit = parseInt(req.query.limit as string) || 50;
       const offset = parseInt(req.query.offset as string) || 0;
@@ -142,7 +110,7 @@ export function startDashboard(options: DashboardOptions = {}): void {
     }
   });
 
-  app.get('/api/sessions/:id', (req, res) => {
+  router.get('/sessions/:id', (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const detail = getSessionDetail(id);
@@ -153,7 +121,7 @@ export function startDashboard(options: DashboardOptions = {}): void {
     }
   });
 
-  app.get('/api/daily-costs', (req, res) => {
+  router.get('/daily-costs', (req, res) => {
     try {
       const days = parseInt(req.query.days as string) || 30;
       res.json(getDailyCosts(days));
@@ -162,7 +130,7 @@ export function startDashboard(options: DashboardOptions = {}): void {
     }
   });
 
-  app.get('/api/model-breakdown', (_req, res) => {
+  router.get('/model-breakdown', (_req, res) => {
     try {
       res.json(getModelBreakdown());
     } catch (e: any) {
@@ -170,7 +138,7 @@ export function startDashboard(options: DashboardOptions = {}): void {
     }
   });
 
-  app.get('/api/top-sessions', (req, res) => {
+  router.get('/top-sessions', (req, res) => {
     try {
       const limit = parseInt(req.query.limit as string) || 10;
       res.json(getTopSessions(limit));
@@ -179,7 +147,7 @@ export function startDashboard(options: DashboardOptions = {}): void {
     }
   });
 
-  app.get('/api/provider-breakdown', (_req, res) => {
+  router.get('/provider-breakdown', (_req, res) => {
     try {
       res.json(getProviderBreakdown());
     } catch (e: any) {
@@ -187,7 +155,7 @@ export function startDashboard(options: DashboardOptions = {}): void {
     }
   });
 
-  app.get('/api/file-hotspots', (req, res) => {
+  router.get('/file-hotspots', (req, res) => {
     try {
       const limit = parseInt(req.query.limit as string) || 50;
       res.json(getFileHotspots(limit));
@@ -196,7 +164,7 @@ export function startDashboard(options: DashboardOptions = {}): void {
     }
   });
 
-  app.get('/api/activity-heatmap', (_req, res) => {
+  router.get('/activity-heatmap', (_req, res) => {
     try {
       res.json(getActivityHeatmap());
     } catch (e: any) {
@@ -204,7 +172,7 @@ export function startDashboard(options: DashboardOptions = {}): void {
     }
   });
 
-  app.get('/api/daily-tokens', (req, res) => {
+  router.get('/daily-tokens', (req, res) => {
     try {
       const days = parseInt(req.query.days as string) || 30;
       res.json(getDailyTokens(days));
@@ -213,7 +181,7 @@ export function startDashboard(options: DashboardOptions = {}): void {
     }
   });
 
-  app.get('/api/cost-velocity', (req, res) => {
+  router.get('/cost-velocity', (req, res) => {
     try {
       const limit = parseInt(req.query.limit as string) || 50;
       res.json(getCostVelocity(limit));
@@ -222,7 +190,7 @@ export function startDashboard(options: DashboardOptions = {}): void {
     }
   });
 
-  app.get('/api/projects', (_req, res) => {
+  router.get('/projects', (_req, res) => {
     try {
       res.json(getProjectBreakdown());
     } catch (e: any) {
@@ -230,7 +198,7 @@ export function startDashboard(options: DashboardOptions = {}): void {
     }
   });
 
-  app.get('/api/token-ratios', (_req, res) => {
+  router.get('/token-ratios', (_req, res) => {
     try {
       res.json(getTokenRatios());
     } catch (e: any) {
@@ -238,7 +206,7 @@ export function startDashboard(options: DashboardOptions = {}): void {
     }
   });
 
-  app.get('/api/pricing', (_req, res) => {
+  router.get('/pricing', (_req, res) => {
     try {
       res.json(loadPricing());
     } catch (e: any) {
@@ -246,7 +214,7 @@ export function startDashboard(options: DashboardOptions = {}): void {
     }
   });
 
-  app.get('/api/export', (req, res) => {
+  router.get('/export', (req, res) => {
     try {
       const format = (req.query.format as string) === 'csv' ? 'csv' : 'json';
       const limit = parseInt(req.query.limit as string) || undefined;
@@ -261,17 +229,112 @@ export function startDashboard(options: DashboardOptions = {}): void {
     }
   });
 
-  app.get('/api/version', (_req, res) => {
+  router.get('/version', (_req, res) => {
     try {
       const pkg = require('../package.json');
-      res.json({ version: pkg.version });
+      res.json({ version: pkg.version, apiVersion: 1 });
     } catch {
-      res.json({ version: 'unknown' });
+      res.json({ version: 'unknown', apiVersion: 1 });
     }
   });
 
-  // SPA fallback (express 5 requires named param instead of bare *)
-  app.use((_req, res) => {
+  return router;
+}
+
+// ── Main ───────────────────────────────────────────────────
+
+export function startDashboard(options: DashboardOptions = {}): void {
+  const port = options.port || 3737;
+  const host = options.host || '127.0.0.1';
+  const shouldOpen = options.open !== false;
+  const jsonMode = options.json === true;
+  const isExposed = host !== '127.0.0.1' && host !== 'localhost';
+
+  // Generate session token for non-localhost binding
+  const token = isExposed ? randomBytes(24).toString('base64url') : null;
+
+  if (isExposed) {
+    const msg = 'WARNING: Binding to ' + host + ' exposes session data (costs, repo activity, file paths) to your network. Use only on trusted networks.';
+    if (jsonMode) {
+      process.stderr.write(JSON.stringify({ warning: msg }) + '\n');
+    } else {
+      console.warn(`\n  ${msg}\n`);
+    }
+  }
+
+  const app = express();
+
+  // ── Security hardening (inline, no helmet dependency) ────
+
+  app.disable('x-powered-by');
+
+  app.use((_req: Request, res: Response, next: NextFunction) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-XSS-Protection', '0');
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+    if (isExposed) {
+      // Strict CSP only when exposed
+      res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'");
+    }
+    next();
+  });
+
+  // JSON body limit (4kb -- we only read, but defence-in-depth)
+  app.use(express.json({ limit: '4kb' }));
+
+  // ── Token auth for non-localhost ─────────────────────────
+
+  if (token) {
+    app.use('/api', (req: Request, res: Response, next: NextFunction) => {
+      const qToken = req.query.token as string | undefined;
+      const hToken = req.headers.authorization?.replace(/^Bearer\s+/i, '');
+      if (qToken === token || hToken === token) {
+        next();
+      } else {
+        res.status(401).json({ error: 'Unauthorized. Provide token via ?token= or Authorization: Bearer <token>' });
+      }
+    });
+  }
+
+  // ── Static files with cache headers ──────────────────────
+
+  const staticDir = join(__dirname, 'dashboard-ui');
+
+  // Hashed assets (js/css with content hash in filename): immutable, 1 year
+  app.use('/assets', express.static(join(staticDir, 'assets'), {
+    maxAge: '365d',
+    immutable: true,
+  }));
+
+  // index.html and other root files: no-cache (always fresh after upgrades)
+  app.use(express.static(staticDir, {
+    maxAge: 0,
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.html')) {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      }
+    },
+  }));
+
+  // ── API version header on all API responses ──────────────
+
+  app.use('/api', (_req: Request, res: Response, next: NextFunction) => {
+    res.setHeader('X-Codesession-Api-Version', '1');
+    next();
+  });
+
+  // ── Mount API router at /api/v1 (canonical) and /api (compat alias) ──
+
+  const apiRouter = buildApiRouter();
+  app.use('/api/v1', apiRouter);
+  app.use('/api', apiRouter);
+
+  // ── SPA fallback ─────────────────────────────────────────
+
+  app.use((_req: Request, res: Response) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.sendFile(join(staticDir, 'index.html'));
   });
 
@@ -281,27 +344,31 @@ export function startDashboard(options: DashboardOptions = {}): void {
     const server = app.listen(port, host, () => {
       const url = `http://localhost:${port}`;
 
-      // Write PID file so future instances can identify us
       writePidFile(port);
 
-      // Clean up PID file on exit
       const cleanup = () => { removePidFile(port); process.exit(); };
       process.on('SIGINT', cleanup);
       process.on('SIGTERM', cleanup);
 
       if (jsonMode) {
-        // Machine-readable startup output on stdout
-        console.log(JSON.stringify({ url, port, pid: process.pid, host }));
+        const out: Record<string, any> = { url, port, pid: process.pid, host, apiVersion: 1 };
+        if (token) out.token = token;
+        console.log(JSON.stringify(out));
       } else {
         console.log(`\n  codesession dashboard -> ${url}`);
+        if (token) {
+          console.log(`  Session token: ${token}`);
+          console.log(`  Authenticated URL: ${url}?token=${token}`);
+        }
         console.log('  Press Ctrl+C to stop\n');
       }
 
       if (shouldOpen && !jsonMode) {
+        const openUrl = token ? `${url}?token=${token}` : url;
         const cmd =
           process.platform === 'win32' ? 'start' :
           process.platform === 'darwin' ? 'open' : 'xdg-open';
-        exec(`${cmd} ${url}`);
+        exec(`${cmd} ${openUrl}`);
       }
     });
 
@@ -319,7 +386,6 @@ export function startDashboard(options: DashboardOptions = {}): void {
     });
   };
 
-  // Check port; only kill a stale process if it's one WE started (via PID file)
   isPortInUse(port).then((inUse) => {
     if (inUse) {
       if (!jsonMode) {
@@ -327,7 +393,6 @@ export function startDashboard(options: DashboardOptions = {}): void {
       }
       const killed = killOwnStaleProcess(port);
       if (killed) {
-        // Give the OS a moment to release the port
         setTimeout(startServer, 500);
       } else {
         if (jsonMode) {

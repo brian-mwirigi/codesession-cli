@@ -134,12 +134,16 @@ Opens a local web app at `http://localhost:3737` with four pages:
 - **Pricing** — model pricing table (input/output per 1M tokens)
 
 Options:
-- `--port <port>` — custom port (default: 3737)
-- `--host <host>` — bind address (default: `127.0.0.1`; use `0.0.0.0` to expose on network — prints a loud warning)
-- `--no-open` — don't auto-open browser
-- `--json` — machine-readable startup output: `{ url, port, pid, host }`
+- `--port <port>` -- custom port (default: 3737)
+- `--host <host>` -- bind address (default: `127.0.0.1`; use `0.0.0.0` to expose on network -- prints a loud warning)
+- `--no-open` -- don't auto-open browser
+- `--json` -- machine-readable startup output: `{ url, port, pid, host, apiVersion, token? }`
 
-Port safety: the dashboard writes a PID file (`~/.codesession/dashboard-<port>.pid`). On restart it only kills a stale process if the PID file matches — it never blindly kills whatever is on the port.
+**Security:** The dashboard binds to `127.0.0.1` only by default and exposes only your local session data. It does not send telemetry, phone home, or open any external connections. When bound to a non-localhost address (`--host 0.0.0.0`), a random session token is generated and required for all API requests.
+
+**Port safety:** The dashboard writes a PID file (`~/.codesession/dashboard-<port>.pid`). On restart it only kills a stale process if the PID file matches -- it never blindly kills whatever is on the port.
+
+**API versioning:** All endpoints are available at `/api/v1/*` (canonical) and `/api/*` (backward-compatible alias). Responses include an `X-Codesession-Api-Version: 1` header.
 
 ---
 
