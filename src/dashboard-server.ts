@@ -2,6 +2,8 @@ import express from 'express';
 import { join } from 'path';
 import { exec, execSync } from 'child_process';
 import { createServer } from 'net';
+import { existsSync, readFileSync, writeFileSync, unlinkSync, mkdirSync } from 'fs';
+import { homedir } from 'os';
 import {
   getStats, getActiveSessions,
   getSessionsPaginated, getSessionDetail,
@@ -14,12 +16,72 @@ import {
 interface DashboardOptions {
   port?: number;
   open?: boolean;
+  host?: string;
+  json?: boolean;
+}
+
+// ── PID file management ────────────────────────────────────
+
+const PID_DIR = join(homedir(), '.codesession');
+const pidFilePath = (port: number) => join(PID_DIR, `dashboard-${port}.pid`);
+
+/** Write our own PID to a file so we can identify stale instances later. */
+function writePidFile(port: number): void {
+  mkdirSync(PID_DIR, { recursive: true });
+  writeFileSync(pidFilePath(port), `${process.pid}\n`, 'utf-8');
+}
+
+/** Remove PID file on shutdown. */
+function removePidFile(port: number): void {
+  try { unlinkSync(pidFilePath(port)); } catch (_) { /* already gone */ }
 }
 
 /**
- * Check if a port is in use.
- * Returns true if the port is already occupied.
+ * Read PID from our pid file for the given port.
+ * Returns the PID if the file exists and the process is still running, else null.
  */
+function readOwnPid(port: number): number | null {
+  const file = pidFilePath(port);
+  if (!existsSync(file)) return null;
+  try {
+    const pid = parseInt(readFileSync(file, 'utf-8').trim(), 10);
+    if (isNaN(pid) || pid <= 0) return null;
+    // Signal 0 = existence check, throws if process is gone
+    process.kill(pid, 0);
+    return pid;
+  } catch (_) {
+    // Process is gone -- clean up stale pid file
+    try { unlinkSync(file); } catch (_) {}
+    return null;
+  }
+}
+
+/**
+ * Kill a previous dashboard instance that WE started, identified by PID file.
+ * Only kills processes we own -- never blindly kills whatever is on the port.
+ * Returns true if a process was found and killed.
+ */
+function killOwnStaleProcess(port: number): boolean {
+  const pid = readOwnPid(port);
+  if (pid === null) return false;
+  try {
+    if (process.platform === 'win32') {
+      execSync(`taskkill /PID ${pid} /F`, { timeout: 5000 });
+    } else {
+      process.kill(pid, 'SIGTERM');
+    }
+    console.log(`  Killed previous dashboard (PID ${pid}) on port ${port}`);
+    removePidFile(port);
+    return true;
+  } catch (_) {
+    // Process already gone
+    removePidFile(port);
+    return false;
+  }
+}
+
+// ── Port check ─────────────────────────────────────────────
+
 function isPortInUse(port: number): Promise<boolean> {
   return new Promise((resolve) => {
     const tester = createServer()
@@ -34,58 +96,23 @@ function isPortInUse(port: number): Promise<boolean> {
   });
 }
 
-/**
- * Try to kill any process occupying the given port.
- * Returns true if a process was found and killed.
- */
-function killProcessOnPort(port: number): boolean {
-  try {
-    if (process.platform === 'win32') {
-      // Find PID using netstat
-      const output = execSync(
-        `netstat -ano | findstr :${port} | findstr LISTENING`,
-        { encoding: 'utf-8', timeout: 5000 }
-      ).trim();
-      const lines = output.split('\n');
-      const pids = new Set<string>();
-      for (const line of lines) {
-        const parts = line.trim().split(/\s+/);
-        const pid = parts[parts.length - 1];
-        if (pid && pid !== '0' && /^\d+$/.test(pid)) pids.add(pid);
-      }
-      for (const pid of pids) {
-        try {
-          execSync(`taskkill /PID ${pid} /F`, { timeout: 5000 });
-          console.log(`  Killed stale process PID ${pid} on port ${port}`);
-        } catch (_) { /* process may have already exited */ }
-      }
-      return pids.size > 0;
-    } else {
-      // Unix: use lsof
-      const output = execSync(
-        `lsof -ti :${port}`,
-        { encoding: 'utf-8', timeout: 5000 }
-      ).trim();
-      if (output) {
-        const pids = output.split('\n').filter(Boolean);
-        for (const pid of pids) {
-          try {
-            execSync(`kill -9 ${pid}`, { timeout: 5000 });
-            console.log(`  Killed stale process PID ${pid} on port ${port}`);
-          } catch (_) { /* process may have already exited */ }
-        }
-        return pids.length > 0;
-      }
-    }
-  } catch (_) {
-    /* No process found or command failed — that's fine */
-  }
-  return false;
-}
+// ── Main ───────────────────────────────────────────────────
 
 export function startDashboard(options: DashboardOptions = {}): void {
   const port = options.port || 3737;
+  const host = options.host || '127.0.0.1';
   const shouldOpen = options.open !== false;
+  const jsonMode = options.json === true;
+
+  // Warn loudly if binding to all interfaces
+  if (host === '0.0.0.0') {
+    const msg = 'WARNING: Binding to 0.0.0.0 exposes session data (costs, repo activity, file paths) to your entire network. Use only on trusted networks.';
+    if (jsonMode) {
+      process.stderr.write(JSON.stringify({ warning: msg }) + '\n');
+    } else {
+      console.warn(`\n  ${msg}\n`);
+    }
+  }
 
   const app = express();
   const staticDir = join(__dirname, 'dashboard-ui');
@@ -251,12 +278,26 @@ export function startDashboard(options: DashboardOptions = {}): void {
   // ── Port conflict handling & startup ──────────────────────
 
   const startServer = () => {
-    const server = app.listen(port, () => {
+    const server = app.listen(port, host, () => {
       const url = `http://localhost:${port}`;
-      console.log(`\n  codesession dashboard -> ${url}`);
-      console.log('  Press Ctrl+C to stop\n');
 
-      if (shouldOpen) {
+      // Write PID file so future instances can identify us
+      writePidFile(port);
+
+      // Clean up PID file on exit
+      const cleanup = () => { removePidFile(port); process.exit(); };
+      process.on('SIGINT', cleanup);
+      process.on('SIGTERM', cleanup);
+
+      if (jsonMode) {
+        // Machine-readable startup output on stdout
+        console.log(JSON.stringify({ url, port, pid: process.pid, host }));
+      } else {
+        console.log(`\n  codesession dashboard -> ${url}`);
+        console.log('  Press Ctrl+C to stop\n');
+      }
+
+      if (shouldOpen && !jsonMode) {
         const cmd =
           process.platform === 'win32' ? 'start' :
           process.platform === 'darwin' ? 'open' : 'xdg-open';
@@ -266,25 +307,35 @@ export function startDashboard(options: DashboardOptions = {}): void {
 
     server.on('error', (err: any) => {
       if (err.code === 'EADDRINUSE') {
-        console.error(`\n  Port ${port} is in use and could not be freed.`);
-        console.error(`  Try: cs dashboard --port ${port + 1}\n`);
+        if (jsonMode) {
+          console.log(JSON.stringify({ error: 'EADDRINUSE', message: `Port ${port} is in use and could not be freed`, port }));
+        } else {
+          console.error(`\n  Port ${port} is in use and could not be freed.`);
+          console.error(`  Try: cs dashboard --port ${port + 1}\n`);
+        }
         process.exit(1);
       }
       throw err;
     });
   };
 
-  // Check port, try to kill stale process if occupied
+  // Check port; only kill a stale process if it's one WE started (via PID file)
   isPortInUse(port).then((inUse) => {
     if (inUse) {
-      console.log(`\n  Port ${port} is already in use -- attempting to free it...`);
-      const killed = killProcessOnPort(port);
+      if (!jsonMode) {
+        console.log(`\n  Port ${port} is already in use -- checking for stale dashboard...`);
+      }
+      const killed = killOwnStaleProcess(port);
       if (killed) {
         // Give the OS a moment to release the port
         setTimeout(startServer, 500);
       } else {
-        console.error(`  Could not identify the process on port ${port}.`);
-        console.error(`  Try: cs dashboard --port ${port + 1}\n`);
+        if (jsonMode) {
+          console.log(JSON.stringify({ error: 'EADDRINUSE', message: `Port ${port} is in use by another process (not a codesession dashboard)`, port }));
+        } else {
+          console.error(`  Port ${port} is in use by another process (not a codesession dashboard).`);
+          console.error(`  Try: cs dashboard --port ${port + 1}\n`);
+        }
         process.exit(1);
       }
     } else {

@@ -38,7 +38,7 @@ import {
 import { formatDuration, formatCost } from './formatters';
 
 const program = new Command();
-const VERSION = '1.7.2';
+const VERSION = '1.8.0';
 const SCHEMA_VERSION = 1;
 
 program
@@ -699,10 +699,12 @@ program
   .command('dashboard')
   .description('Open the web dashboard')
   .option('-p, --port <port>', 'Port to run on', '3737')
+  .option('--host <host>', 'Host to bind to (default: 127.0.0.1)')
   .option('--no-open', 'Do not auto-open browser')
+  .option('--json', 'Output JSON (machine-readable startup info: url, port, pid)')
   .action(async (options) => {
     const { startDashboard } = await import('./dashboard-server');
-    startDashboard({ port: parseInt(options.port), open: options.open });
+    startDashboard({ port: parseInt(options.port), open: options.open, host: options.host, json: options.json });
   });
 
 // Only parse CLI args when run directly (not when imported as a library)

@@ -135,9 +135,11 @@ Opens a local web app at `http://localhost:3737` with four pages:
 
 Options:
 - `--port <port>` — custom port (default: 3737)
+- `--host <host>` — bind address (default: `127.0.0.1`; use `0.0.0.0` to expose on network — prints a loud warning)
 - `--no-open` — don't auto-open browser
+- `--json` — machine-readable startup output: `{ url, port, pid, host }`
 
-The dashboard auto-detects port conflicts and kills stale processes if needed.
+Port safety: the dashboard writes a PID file (`~/.codesession/dashboard-<port>.pid`). On restart it only kills a stale process if the PID file matches — it never blindly kills whatever is on the port.
 
 ---
 
@@ -282,7 +284,7 @@ console.log(`Done: ${summary.filesChanged} files, $${summary.aiCost}`);
 | `cs note <message> [-s id]` | Add timestamped annotation to session |
 | `cs recover [--max-age hours]` | Auto-end stale sessions older than N hours |
 | `cs export [--format json\|csv] [--limit n]` | Export sessions as JSON or CSV |
-| `cs dashboard [--port] [--no-open]` | Open web analytics dashboard |
+| `cs dashboard [--port] [--host] [--no-open] [--json]` | Open web analytics dashboard |
 | `cs pricing list` | Show all model prices (built-in + custom) |
 | `cs pricing set <model> <in> <out>` | Set custom pricing per 1M tokens |
 | `cs pricing set --provider <p> <model> <in> <out>` | Set pricing namespaced by provider |
