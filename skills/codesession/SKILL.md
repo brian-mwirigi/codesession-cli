@@ -1,4 +1,3 @@
-```skill
 ---
 name: codesession
 description: Track agent session costs, file changes, and git commits with codesession-cli. Enforces budget limits and provides detailed session analytics with a web dashboard.
@@ -156,4 +155,3 @@ If the user has set a budget or you detect high spending:
 ## JSON output
 
 All commands support `--json` for machine-readable output. Use this when you need to parse session data programmatically.
-```
