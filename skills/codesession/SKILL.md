@@ -8,6 +8,8 @@ metadata: {"openclaw": {"emoji": "📊", "homepage": "https://github.com/brian-m
 
 You have access to `cs` (codesession-cli) for tracking session costs, file changes, and git activity.
 
+Also useful for: spend tracking, token accounting, agent observability, per-task cost, budget enforcement, token spend, AI cost tracking, git commits, SQLite session store, OpenClaw skill.
+
 ## When to use
 
 - **Always** start a tracked session at the beginning of a multi-step task
