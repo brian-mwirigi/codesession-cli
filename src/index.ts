@@ -38,7 +38,7 @@ import {
 import { formatDuration, formatCost } from './formatters';
 
 const program = new Command();
-const VERSION = '1.5.0';
+const VERSION = '1.7.0';
 const SCHEMA_VERSION = 1;
 
 program
@@ -695,13 +695,23 @@ program
     }
   });
 
+program
+  .command('dashboard')
+  .description('Open the web dashboard')
+  .option('-p, --port <port>', 'Port to run on', '3737')
+  .option('--no-open', 'Do not auto-open browser')
+  .action(async (options) => {
+    const { startDashboard } = await import('./dashboard-server');
+    startDashboard({ port: parseInt(options.port), open: options.open });
+  });
+
 // Only parse CLI args when run directly (not when imported as a library)
 if (require.main === module) {
   program.parse();
 }
 
 // Programmatic API exports
-export { createSession, getActiveSession, getActiveSessions, getActiveSessionForDir, endSession, getSession, getSessions, getStats, addFileChange, addCommit, addAIUsage, getFileChanges, getCommits, getAIUsage, exportSessions, loadPricing, setPricing, resetPricing, getPricingPath, addNote, getNotes, recoverStaleSessions } from './db';
+export { createSession, getActiveSession, getActiveSessions, getActiveSessionForDir, endSession, getSession, getSessions, getStats, addFileChange, addCommit, addAIUsage, getFileChanges, getCommits, getAIUsage, exportSessions, loadPricing, setPricing, resetPricing, getPricingPath, addNote, getNotes, recoverStaleSessions, getSessionsPaginated, getSessionDetail, getDailyCosts, getModelBreakdown, getTopSessions, getProviderBreakdown, getFileHotspots, getActivityHeatmap, getDailyTokens, getCostVelocity, getProjectBreakdown, getTokenRatios } from './db';
 export { initGit, checkForNewCommits, getGitInfo, getGitRoot, getGitHead, getGitDiffFiles, getGitLogCommits } from './git';
 export { startWatcher, stopWatcher } from './watcher';
 export { Session, FileChange, Commit, AIUsage, SessionStats, SessionNote } from './types';

@@ -93,6 +93,54 @@ cs log-ai -p openai -m gpt-4o --prompt-tokens 3000 --completion-tokens 2000 --js
 
 ---
 
+## Web Dashboard
+
+See all your session data in a browser:
+
+```bash
+cs dashboard
+```
+
+Opens a local web app at `http://localhost:3737` with four pages:
+
+### Overview
+- KPI cards: total sessions, cost, time, avg duration, avg cost, files changed, commits
+- Daily cost area chart (30 days) with spend projection (avg daily + projected monthly)
+- Daily token usage bar chart (prompt vs completion)
+- Sessions per day chart
+- Most expensive sessions table
+- Cost velocity chart ($/hr per session)
+
+### Sessions
+- Searchable, sortable session table with status badges
+- Cost/hr column, pagination, JSON/CSV export buttons
+- Click into any session for full detail:
+  - Unified timeline (files, commits, AI calls, notes in chronological order)
+  - Tabs: Timeline, Files, Commits, AI Calls, Notes
+  - Stat row: duration, cost, cost/hr, tokens, prompt:completion ratio, files, commits
+  - Working directory and Git HEAD metadata
+
+### Models & Providers
+- Per-model and per-provider cost/token/call breakdown
+- Cost by model pie chart
+- Token usage by model stacked bar chart (top 10)
+- Prompt:completion ratio analysis with inline distribution bars
+- Full model table with avg cost/call
+
+### Insights
+- **File Hotspots** — most frequently changed files across all sessions with churn bars
+- **Activity Heatmap** — sessions by day-of-week and hour (7×24 grid)
+- **Projects** — per-project cost, sessions, duration, files, commits, tokens; cost bar chart
+- **Pricing** — model pricing table (input/output per 1M tokens)
+
+Options:
+- `--port <port>` — custom port (default: 3737)
+- `--no-open` — don't auto-open browser
+
+The dashboard auto-detects port conflicts and kills stale processes if needed.
+
+---
+
 ## OpenClaw Skill
 
 codesession-cli ships as an [OpenClaw](https://openclaw.ai) skill. Three commands to get started:
@@ -234,6 +282,7 @@ console.log(`Done: ${summary.filesChanged} files, $${summary.aiCost}`);
 | `cs note <message> [-s id]` | Add timestamped annotation to session |
 | `cs recover [--max-age hours]` | Auto-end stale sessions older than N hours |
 | `cs export [--format json\|csv] [--limit n]` | Export sessions as JSON or CSV |
+| `cs dashboard [--port] [--no-open]` | Open web analytics dashboard |
 | `cs pricing list` | Show all model prices (built-in + custom) |
 | `cs pricing set <model> <in> <out>` | Set custom pricing per 1M tokens |
 | `cs pricing set --provider <p> <model> <in> <out>` | Set pricing namespaced by provider |
@@ -408,7 +457,7 @@ Session: Build user auth
 }
 ```
 
-> All `--json` responses include `schemaVersion` (currently `1`) and `codesessionVersion` (e.g. `"1.5.0"`) at the top level.
+> All `--json` responses include `schemaVersion` (currently `1`) and `codesessionVersion` (e.g. `"1.7.0"`) at the top level.
 
 ## License
 
@@ -425,7 +474,7 @@ All `--json` outputs include metadata fields for forward compatibility:
 ```json
 {
   "schemaVersion": 1,
-  "codesessionVersion": "1.5.0",
+  "codesessionVersion": "1.7.0",
   ...
 }
 ```
@@ -472,7 +521,7 @@ Always returns these fields when a session is active:
 ```json
 {
   "schemaVersion": 1,
-  "codesessionVersion": "1.5.0",
+  "codesessionVersion": "1.7.0",
   "id": 42,
   "name": "...",
   "status": "active",

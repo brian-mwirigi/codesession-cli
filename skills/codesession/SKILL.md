@@ -1,14 +1,27 @@
+```skill
 ---
 name: codesession
-description: Track agent session costs, file changes, and git commits with codesession-cli. Enforces budget limits and provides detailed session analytics.
+description: Track agent session costs, file changes, and git commits with codesession-cli. Enforces budget limits and provides detailed session analytics with a web dashboard.
 metadata: {"openclaw": {"emoji": "📊", "homepage": "https://github.com/brian-mwirigi/codesession-cli", "requires": {"bins": ["cs"]}, "install": [{"id": "npm", "kind": "node", "package": "codesession-cli", "bins": ["cs"], "label": "Install codesession-cli (npm)"}]}}
 ---
 
 # Session Cost Tracking (codesession-cli)
 
-You have access to `cs` (codesession-cli) for tracking session costs, file changes, and git activity.
+Track agent session costs, file changes, and git commits. Enforces budget limits and provides detailed session analytics with a full web dashboard.
 
-Also useful for: spend tracking, token accounting, agent observability, per-task cost, budget enforcement, token spend, AI cost tracking, git commits, SQLite session store, OpenClaw skill.
+## Installation
+
+```bash
+# 1. Install the CLI globally from npm
+npm install -g codesession-cli
+
+# 2. Install the OpenClaw skill
+clawhub install codesession
+```
+
+After installing, the `cs` command is available globally. The OpenClaw agent will automatically use it to track sessions.
+
+> **Requirements:** Node.js 18+. No other dependencies needed — codesession uses an embedded SQLite database stored at `~/.codesession/sessions.db`.
 
 ## When to use
 
@@ -16,6 +29,7 @@ Also useful for: spend tracking, token accounting, agent observability, per-task
 - **Always** log AI usage after each API call you make
 - **Always** end the session when the task is complete
 - Check budget before expensive operations
+- Use `cs dashboard` to review session data in a browser
 
 ## Commands
 
@@ -56,7 +70,22 @@ Returns JSON with current session cost, tokens, files changed, duration. All JSO
 cs end -n "completion notes"
 ```
 
-### View session details with full breakdown
+### Web Dashboard
+```bash
+cs dashboard
+# Opens http://localhost:3737 with full analytics UI
+
+cs dashboard --port 4000       # custom port
+cs dashboard --no-open         # don't auto-open browser
+```
+
+The dashboard shows:
+- **Overview** — KPIs, daily cost/token trends, spend projections, cost velocity
+- **Sessions** — searchable/sortable table, per-session detail with timeline, files, commits, AI calls, notes
+- **Models** — per-model & per-provider cost breakdown, token ratios, usage charts
+- **Insights** — file hotspots, activity heatmap, project breakdown, pricing table
+
+### View session details
 ```bash
 cs show --json --files --commits
 ```
@@ -72,7 +101,7 @@ cs export --format json --limit 10
 cs export --format csv
 ```
 
-### Add a note / annotation
+### Add notes / annotations
 ```bash
 cs note "Starting refactor phase"
 cs note "Tests passing, moving to cleanup"
@@ -92,6 +121,7 @@ Auto-ends any active sessions older than 12 hours.
 3. After each AI call: `cs log-ai -p anthropic -m claude-sonnet-4 --prompt-tokens 8000 --completion-tokens 2000`
 4. Check spend: `cs status --json` → read `aiCost` field
 5. At task end: `cs end -n "Fixed the auth bug, added tests"`
+6. Review past sessions: `cs dashboard`
 
 ## Pricing
 
@@ -126,3 +156,4 @@ If the user has set a budget or you detect high spending:
 ## JSON output
 
 All commands support `--json` for machine-readable output. Use this when you need to parse session data programmatically.
+```
