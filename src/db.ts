@@ -153,7 +153,9 @@ export function addAIUsage(usage: Omit<AIUsage, 'id'>): void {
   const result = sumStmt.get(usage.sessionId) as any;
   
   const updateStmt = db.prepare('UPDATE sessions SET ai_cost = ?, ai_tokens = ? WHERE id = ?');
-  updateStmt.run(result.total_cost || 0, result.total_tokens || 0, usage.sessionId);
+  // Round to 10 decimal places to prevent floating-point accumulation drift
+  const roundedCost = Math.round((result.total_cost || 0) * 1e10) / 1e10;
+  updateStmt.run(roundedCost, result.total_tokens || 0, usage.sessionId);
 }
 
 export function getFileChanges(sessionId: number): FileChange[] {
@@ -227,7 +229,7 @@ function mapSession(row: any): Session {
     workingDirectory: row.working_directory,
     filesChanged: row.files_changed,
     commits: row.commits,
-    aiCost: row.ai_cost,
+    aiCost: Math.round((row.ai_cost || 0) * 1e10) / 1e10,
     aiTokens: row.ai_tokens,
     notes: row.notes,
     status: row.status,
