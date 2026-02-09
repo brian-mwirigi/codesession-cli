@@ -35,6 +35,8 @@ export interface AIUsage {
   provider: string;
   model: string;
   tokens: number;
+  promptTokens?: number;
+  completionTokens?: number;
   cost: number;
   timestamp: string;
 }

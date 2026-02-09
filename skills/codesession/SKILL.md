@@ -24,9 +24,17 @@ cs start "task description"
 
 ### Log AI usage (after each API call)
 ```bash
-cs log-ai -p <provider> -m <model> -t <tokens> -c <cost>
+# With granular tokens (cost auto-calculated from built-in pricing):
+cs log-ai -p anthropic -m claude-sonnet-4 --prompt-tokens 8000 --completion-tokens 2000
+
+# With manual cost:
+cs log-ai -p anthropic -m claude-opus-4-6 -t 15000 -c 0.30
+
+# With all fields:
+cs log-ai -p openai -m gpt-4o --prompt-tokens 5000 --completion-tokens 1500 -c 0.04
 ```
 Providers: `anthropic`, `openai`, `google`, `mistral`, `deepseek`
+Supported models for auto-pricing: claude-opus-4-6, claude-sonnet-4-5, claude-sonnet-4, claude-haiku-3.5, gpt-4o, gpt-4o-mini, gpt-4.1, gpt-4.1-mini, gpt-4.1-nano, o3, o4-mini, gemini-2.5-pro, gemini-2.5-flash, gemini-2.0-flash, deepseek-r1, deepseek-v3
 
 ### Check current status
 ```bash
@@ -49,10 +57,16 @@ cs show --json --files --commits
 cs stats --json
 ```
 
+### Export sessions
+```bash
+cs export --format json --limit 10
+cs export --format csv
+```
+
 ## Workflow
 
 1. At task start: `cs start "Fix authentication bug"`
-2. After each AI call: `cs log-ai -p anthropic -m claude-opus-4-6 -t 15000 -c 0.30`
+2. After each AI call: `cs log-ai -p anthropic -m claude-sonnet-4 --prompt-tokens 8000 --completion-tokens 2000`
 3. Check spend: `cs status --json` → read `aiCost` field
 4. At task end: `cs end -n "Fixed the auth bug, added tests"`
 

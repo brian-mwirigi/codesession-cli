@@ -13,6 +13,10 @@ if (!existsSync(DB_DIR)) {
 
 const db = new Database(DB_PATH);
 
+// Enable WAL mode + busy timeout for concurrent access safety
+db.pragma('journal_mode = WAL');
+db.pragma('busy_timeout = 5000');
+
 // Initialize database
 db.exec(`
   CREATE TABLE IF NOT EXISTS sessions (
@@ -60,11 +64,21 @@ db.exec(`
     provider TEXT NOT NULL,
     model TEXT NOT NULL,
     tokens INTEGER NOT NULL,
+    prompt_tokens INTEGER,
+    completion_tokens INTEGER,
     cost REAL NOT NULL,
     timestamp TEXT NOT NULL,
     FOREIGN KEY (session_id) REFERENCES sessions(id)
   )
 `);
+
+// Migration: add granular token columns if missing
+try {
+  db.exec('ALTER TABLE ai_usage ADD COLUMN prompt_tokens INTEGER');
+} catch (_) { /* column already exists */ }
+try {
+  db.exec('ALTER TABLE ai_usage ADD COLUMN completion_tokens INTEGER');
+} catch (_) { /* column already exists */ }
 
 export function createSession(session: Omit<Session, 'id'>): number {
   const stmt = db.prepare(`
@@ -140,10 +154,10 @@ export function addCommit(commit: Omit<Commit, 'id'>): void {
 
 export function addAIUsage(usage: Omit<AIUsage, 'id'>): void {
   const stmt = db.prepare(`
-    INSERT INTO ai_usage (session_id, provider, model, tokens, cost, timestamp)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO ai_usage (session_id, provider, model, tokens, prompt_tokens, completion_tokens, cost, timestamp)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `);
-  stmt.run(usage.sessionId, usage.provider, usage.model, usage.tokens, usage.cost, usage.timestamp);
+  stmt.run(usage.sessionId, usage.provider, usage.model, usage.tokens, usage.promptTokens || null, usage.completionTokens || null, usage.cost, usage.timestamp);
 
   // Update session AI totals
   const sumStmt = db.prepare(`
@@ -191,9 +205,36 @@ export function getAIUsage(sessionId: number): AIUsage[] {
     provider: row.provider,
     model: row.model,
     tokens: row.tokens,
+    promptTokens: row.prompt_tokens || undefined,
+    completionTokens: row.completion_tokens || undefined,
     cost: row.cost,
     timestamp: row.timestamp,
   }));
+}
+
+export function exportSessions(format: 'json' | 'csv', limit?: number): string {
+  const sessions = getSessions(limit || 999999);
+
+  if (format === 'json') {
+    const full = sessions.map((s) => {
+      const aiUsage = getAIUsage(s.id!);
+      const files = getFileChanges(s.id!);
+      const commits = getCommits(s.id!);
+      return { ...s, aiUsage, files, commits };
+    });
+    return JSON.stringify(full, null, 2);
+  }
+
+  // CSV
+  const header = 'id,name,status,startTime,endTime,duration,filesChanged,commits,aiTokens,aiCost,notes';
+  const rows = sessions.map((s) =>
+    [
+      s.id, `"${(s.name || '').replace(/"/g, '""')}"`, s.status, s.startTime, s.endTime || '',
+      s.duration || '', s.filesChanged, s.commits, s.aiTokens,
+      s.aiCost, `"${(s.notes || '').replace(/"/g, '""')}"`
+    ].join(',')
+  );
+  return [header, ...rows].join('\n');
 }
 
 export function getStats(): SessionStats {

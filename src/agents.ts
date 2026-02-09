@@ -129,10 +129,11 @@ export class AgentSession {
 
   /**
    * Log AI usage for this session. Automatically checks budget.
+   * Cost is optional — auto-calculated from built-in pricing if omitted (requires known model).
    * @returns The remaining budget (null if no budget set)
    * @throws BudgetExceededError if budget is exceeded
    */
-  logAI(provider: string, model: string, tokens: number, cost: number): number | null {
+  logAI(provider: string, model: string, tokens: number, cost: number, options?: { promptTokens?: number; completionTokens?: number }): number | null {
     this.assertStarted();
 
     addAIUsage({
@@ -140,6 +141,8 @@ export class AgentSession {
       provider,
       model,
       tokens,
+      promptTokens: options?.promptTokens,
+      completionTokens: options?.completionTokens,
       cost,
       timestamp: new Date().toISOString(),
     });

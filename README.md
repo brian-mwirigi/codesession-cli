@@ -57,7 +57,10 @@ npm install -g codesession-cli
 # Start a session
 cs start "Build user auth"
 
-# Log AI usage (after API calls)
+# Log AI usage — cost auto-calculated from built-in pricing
+cs log-ai -p anthropic -m claude-sonnet-4 --prompt-tokens 8000 --completion-tokens 2000
+
+# Or provide cost manually
 cs log-ai -p anthropic -m claude-opus-4-6 -t 15000 -c 0.30
 
 # Check current costs mid-session
@@ -70,6 +73,10 @@ cs end -n "Auth complete, all tests passing"
 cs list
 cs show --files --commits
 cs stats
+
+# Export sessions
+cs export --format csv
+cs export --format json --limit 10
 ```
 
 ### JSON Output (for agents)
@@ -80,8 +87,8 @@ Every command supports `--json` for machine-readable output:
 cs status --json
 # {"id":42,"name":"Fix auth","status":"active","aiCost":3.47,"aiTokens":89000,...}
 
-cs log-ai -p openai -m gpt-4o -t 5000 -c 0.05 --json
-# {"logged":{"provider":"openai","model":"gpt-4o","tokens":5000,"cost":0.05},"session":{"id":42,"aiCost":3.52,"aiTokens":94000}}
+cs log-ai -p openai -m gpt-4o --prompt-tokens 3000 --completion-tokens 2000 --json
+# {"logged":{"provider":"openai","model":"gpt-4o","tokens":5000,"promptTokens":3000,"completionTokens":2000,"cost":0.0275},"session":{"id":42,"aiCost":3.52,"aiTokens":94000}}
 ```
 
 ---
@@ -122,9 +129,9 @@ Agent: Starting session tracking...
   ✓ Session started
 
   [Agent works: reads files, edits code, runs tests...]
-  $ cs log-ai -p anthropic -m claude-opus-4-6 -t 12000 -c 0.24
-  $ cs log-ai -p anthropic -m claude-opus-4-6 -t 18000 -c 0.36
-  $ cs log-ai -p anthropic -m claude-opus-4-6 -t 8000 -c 0.16
+  $ cs log-ai -p anthropic -m claude-opus-4-6 --prompt-tokens 8000 --completion-tokens 4000
+  $ cs log-ai -p anthropic -m claude-opus-4-6 --prompt-tokens 12000 --completion-tokens 6000
+  $ cs log-ai -p anthropic -m claude-opus-4-6 --prompt-tokens 5000 --completion-tokens 3000
 
   $ cs end -n "Fixed payment bug, added exponential backoff retry"
   ✓ Session ended
@@ -162,8 +169,11 @@ const session = new AgentSession('Refactor auth module', {
 
 session.start();
 
-// After each AI call
-session.logAI('anthropic', 'claude-opus-4-6', 15000, 0.30);
+// After each AI call — with granular tokens (cost auto-calculated)
+session.logAI('anthropic', 'claude-opus-4-6', 15000, 0.30, {
+  promptTokens: 10000,
+  completionTokens: 5000,
+});
 
 // Pre-flight check
 if (!session.canAfford(2.00)) {
@@ -215,13 +225,25 @@ console.log(`Done: ${summary.filesChanged} files, $${summary.aiCost}`);
 | `cs show [id] [--files] [--commits]` | Show session details |
 | `cs list [-l limit]` | List recent sessions |
 | `cs stats` | Overall statistics |
-| `cs log-ai -p <provider> -m <model> -t <tokens> -c <cost>` | Log AI usage |
+| `cs log-ai -p <provider> -m <model> [options]` | Log AI usage (cost auto-derived or manual) |
+| `cs export [--format json\|csv] [--limit n]` | Export sessions as JSON or CSV |
 
 All commands support `--json` for machine-readable output.
 
+### log-ai options
+
+| Flag | Description |
+|------|-------------|
+| `-p, --provider` | AI provider (required) |
+| `-m, --model` | Model name (required) |
+| `-t, --tokens` | Total tokens |
+| `--prompt-tokens` | Prompt/input tokens |
+| `--completion-tokens` | Completion/output tokens |
+| `-c, --cost` | Cost in USD (auto-calculated if omitted for known models) |
+
 ## Data Storage
 
-All data stored locally in `~/.devsession/sessions.db` (SQLite).
+All data stored locally in `~/.devsession/sessions.db` (SQLite with WAL mode for concurrent access).
 
 No telemetry. No cloud. 100% local.
 

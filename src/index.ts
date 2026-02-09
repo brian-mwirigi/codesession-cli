@@ -13,6 +13,7 @@ import {
   getCommits,
   addAIUsage,
   getAIUsage,
+  exportSessions,
 } from './db';
 import { initGit, checkForNewCommits, getGitInfo } from './git';
 import { startWatcher, stopWatcher } from './watcher';
@@ -30,7 +31,7 @@ const program = new Command();
 program
   .name('codesession')
   .description('Track AI coding sessions & agent runs — time, files, commits, costs')
-  .version('1.2.0');
+  .version('1.3.0');
 
 // ─── Helpers ───────────────────────────────────────────────────
 
@@ -54,6 +55,37 @@ function sessionToJSON(session: any, extras?: { files?: any[]; commits?: any[]; 
   if (extras?.commits) obj.commits = extras.commits;
   if (extras?.aiUsage) obj.aiUsage = extras.aiUsage;
   return obj;
+}
+
+// ─── Pricing Table ─────────────────────────────────────────────
+
+const PRICING: Record<string, { input: number; output: number }> = {
+  // Anthropic (per 1M tokens)
+  'claude-opus-4-6': { input: 15, output: 75 },
+  'claude-sonnet-4-5': { input: 3, output: 15 },
+  'claude-sonnet-4': { input: 3, output: 15 },
+  'claude-haiku-3.5': { input: 0.80, output: 4 },
+  // OpenAI (per 1M tokens)
+  'gpt-4o': { input: 2.50, output: 10 },
+  'gpt-4o-mini': { input: 0.15, output: 0.60 },
+  'gpt-4.1': { input: 2, output: 8 },
+  'gpt-4.1-mini': { input: 0.40, output: 1.60 },
+  'gpt-4.1-nano': { input: 0.10, output: 0.40 },
+  'o3': { input: 2, output: 8 },
+  'o4-mini': { input: 1.10, output: 4.40 },
+  // Google (per 1M tokens)
+  'gemini-2.5-pro': { input: 1.25, output: 10 },
+  'gemini-2.5-flash': { input: 0.15, output: 0.60 },
+  'gemini-2.0-flash': { input: 0.10, output: 0.40 },
+  // DeepSeek
+  'deepseek-r1': { input: 0.55, output: 2.19 },
+  'deepseek-v3': { input: 0.27, output: 1.10 },
+};
+
+function estimateCost(model: string, promptTokens: number, completionTokens: number): number | null {
+  const pricing = PRICING[model];
+  if (!pricing) return null;
+  return (promptTokens * pricing.input + completionTokens * pricing.output) / 1_000_000;
 }
 
 // ─── Start ─────────────────────────────────────────────────────
@@ -254,8 +286,10 @@ program
   .description('Log AI usage for active session')
   .requiredOption('-p, --provider <provider>', 'AI provider (anthropic, openai, google, etc.)')
   .requiredOption('-m, --model <model>', 'Model name')
-  .requiredOption('-t, --tokens <tokens>', 'Total tokens', parseInt)
-  .requiredOption('-c, --cost <cost>', 'Cost in dollars', parseFloat)
+  .option('-t, --tokens <tokens>', 'Total tokens', parseInt)
+  .option('-c, --cost <cost>', 'Cost in dollars (auto-calculated if omitted)', parseFloat)
+  .option('--prompt-tokens <n>', 'Prompt/input tokens', parseInt)
+  .option('--completion-tokens <n>', 'Completion/output tokens', parseInt)
   .option('--json', 'Output JSON (for agents)')
   .action((options) => {
     const session = getActiveSession();
@@ -268,12 +302,45 @@ program
       return;
     }
 
+    const promptTk = options.promptTokens || 0;
+    const completionTk = options.completionTokens || 0;
+    const totalTokens = options.tokens || (promptTk + completionTk);
+
+    if (totalTokens === 0) {
+      const msg = 'Must provide --tokens or --prompt-tokens/--completion-tokens';
+      if (options.json) {
+        console.log(JSON.stringify({ error: 'missing_tokens', message: msg }));
+      } else {
+        console.log(chalk.red(`\n✗ ${msg}\n`));
+      }
+      return;
+    }
+
+    let cost = options.cost;
+    if (cost === undefined || cost === null) {
+      // Auto-calculate from pricing table
+      const auto = estimateCost(options.model, promptTk || totalTokens * 0.7, completionTk || totalTokens * 0.3);
+      if (auto !== null) {
+        cost = Math.round(auto * 1e10) / 1e10;
+      } else {
+        const msg = `Unknown model "${options.model}" — provide -c <cost> or use --prompt-tokens/--completion-tokens with a known model`;
+        if (options.json) {
+          console.log(JSON.stringify({ error: 'unknown_model', message: msg }));
+        } else {
+          console.log(chalk.red(`\n✗ ${msg}\n`));
+        }
+        return;
+      }
+    }
+
     addAIUsage({
       sessionId: session.id!,
       provider: options.provider,
       model: options.model,
-      tokens: options.tokens,
-      cost: options.cost,
+      tokens: totalTokens,
+      promptTokens: promptTk || undefined,
+      completionTokens: completionTk || undefined,
+      cost,
       timestamp: new Date().toISOString(),
     });
 
@@ -281,11 +348,11 @@ program
     const updated = getSession(session.id!);
     if (options.json) {
       console.log(JSON.stringify({
-        logged: { provider: options.provider, model: options.model, tokens: options.tokens, cost: options.cost },
+        logged: { provider: options.provider, model: options.model, tokens: totalTokens, promptTokens: promptTk || undefined, completionTokens: completionTk || undefined, cost },
         session: { id: session.id, aiCost: updated?.aiCost || 0, aiTokens: updated?.aiTokens || 0 },
       }));
     } else {
-      console.log(chalk.green(`\n✓ Logged: ${options.tokens.toLocaleString()} tokens, ${formatCost(options.cost)}`));
+      console.log(chalk.green(`\n✓ Logged: ${totalTokens.toLocaleString()} tokens, ${formatCost(cost)}`));
       console.log(chalk.gray(`  Session total: ${(updated?.aiTokens || 0).toLocaleString()} tokens, ${formatCost(updated?.aiCost || 0)}\n`));
     }
   });
@@ -324,13 +391,26 @@ program
     }
   });
 
+// ─── Export ─────────────────────────────────────────────────
+
+program
+  .command('export')
+  .description('Export sessions as JSON or CSV')
+  .option('-f, --format <format>', 'Output format: json or csv', 'json')
+  .option('-l, --limit <n>', 'Number of sessions to export', parseInt)
+  .action((options) => {
+    const format = options.format === 'csv' ? 'csv' : 'json';
+    const output = exportSessions(format, options.limit);
+    console.log(output);
+  });
+
 // Only parse CLI args when run directly (not when imported as a library)
 if (require.main === module) {
   program.parse();
 }
 
 // Programmatic API exports
-export { createSession, getActiveSession, endSession, getSession, getSessions, getStats, addFileChange, addCommit, addAIUsage, getFileChanges, getCommits, getAIUsage } from './db';
+export { createSession, getActiveSession, endSession, getSession, getSessions, getStats, addFileChange, addCommit, addAIUsage, getFileChanges, getCommits, getAIUsage, exportSessions } from './db';
 export { initGit, checkForNewCommits, getGitInfo } from './git';
 export { startWatcher, stopWatcher } from './watcher';
 export { Session, FileChange, Commit, AIUsage, SessionStats } from './types';
