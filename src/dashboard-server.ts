@@ -253,7 +253,7 @@ export function startDashboard(options: DashboardOptions = {}): void {
   const startServer = () => {
     const server = app.listen(port, () => {
       const url = `http://localhost:${port}`;
-      console.log(`\n  📊 codesession dashboard → ${url}`);
+      console.log(`\n  codesession dashboard -> ${url}`);
       console.log('  Press Ctrl+C to stop\n');
 
       if (shouldOpen) {
@@ -266,7 +266,7 @@ export function startDashboard(options: DashboardOptions = {}): void {
 
     server.on('error', (err: any) => {
       if (err.code === 'EADDRINUSE') {
-        console.error(`\n  ✖ Port ${port} is in use and could not be freed.`);
+        console.error(`\n  Port ${port} is in use and could not be freed.`);
         console.error(`  Try: cs dashboard --port ${port + 1}\n`);
         process.exit(1);
       }
@@ -277,13 +277,13 @@ export function startDashboard(options: DashboardOptions = {}): void {
   // Check port, try to kill stale process if occupied
   isPortInUse(port).then((inUse) => {
     if (inUse) {
-      console.log(`\n  ⚠ Port ${port} is already in use — attempting to free it…`);
+      console.log(`\n  Port ${port} is already in use -- attempting to free it...`);
       const killed = killProcessOnPort(port);
       if (killed) {
         // Give the OS a moment to release the port
         setTimeout(startServer, 500);
       } else {
-        console.error(`  ✖ Could not identify the process on port ${port}.`);
+        console.error(`  Could not identify the process on port ${port}.`);
         console.error(`  Try: cs dashboard --port ${port + 1}\n`);
         process.exit(1);
       }

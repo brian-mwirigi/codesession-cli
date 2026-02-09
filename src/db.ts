@@ -8,7 +8,7 @@ import { Session, FileChange, Commit, AIUsage, SessionStats, SessionNote } from 
 const NEW_DB_DIR = join(homedir(), '.codesession');
 const LEGACY_DB_DIR = join(homedir(), '.devsession');
 
-// Auto-migrate: if legacy dir exists but new doesn't, copy DB over (atomic-ish: copy → verify → use)
+// Auto-migrate: if legacy dir exists but new doesn't, copy DB over (atomic-ish: copy -> verify -> use)
 if (existsSync(LEGACY_DB_DIR) && !existsSync(NEW_DB_DIR)) {
   mkdirSync(NEW_DB_DIR, { recursive: true });
   const legacyDb = join(LEGACY_DB_DIR, 'sessions.db');
@@ -30,7 +30,7 @@ if (existsSync(LEGACY_DB_DIR) && !existsSync(NEW_DB_DIR)) {
       copyFileSync(legacyPricing, join(NEW_DB_DIR, 'pricing.json'));
     }
     // Inform user (stderr so it doesn't break --json stdout)
-    process.stderr.write(`[codesession] Migrated data from ${LEGACY_DB_DIR} → ${NEW_DB_DIR} (old files preserved — delete manually if desired)\n`);
+    process.stderr.write(`[codesession] Migrated data from ${LEGACY_DB_DIR} -> ${NEW_DB_DIR} (old files preserved -- delete manually if desired)\n`);
   }
 }
 
@@ -642,7 +642,7 @@ export function getFileHotspots(limit: number = 50): Array<{
 
 /** Activity heatmap: session count + cost by hour-of-day and day-of-week */
 export function getActivityHeatmap(): Array<{
-  dayOfWeek: number;  // 0=Sun … 6=Sat
+  dayOfWeek: number;  // 0=Sun .. 6=Sat
   hour: number;       // 0–23
   sessions: number;
   cost: number;

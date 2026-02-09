@@ -38,7 +38,7 @@ import {
 import { formatDuration, formatCost } from './formatters';
 
 const program = new Command();
-const VERSION = '1.7.1';
+const VERSION = '1.7.2';
 const SCHEMA_VERSION = 1;
 
 program
@@ -161,7 +161,7 @@ program
             console.log(JSON.stringify(jsonWrap({ id: forDir.id, name: forDir.name, directory: scopeDir, branch: gitInfo?.branch || null, resumed: true })));
             process.exit(0);
           } else {
-            console.log(chalk.green(`\n✓ Resumed session: ${forDir.name} (id: ${forDir.id})`));
+            console.log(chalk.green(`\nResumed session: ${forDir.name} (id: ${forDir.id})`));
             console.log(chalk.gray(`  Started: ${forDir.startTime}\n`));
           }
           return;
@@ -235,7 +235,7 @@ program
       process.exit(0);
     } else {
       const gitInfo = await getGitInfo();
-      console.log(chalk.green(`\n✓ Session started: ${name}`));
+      console.log(chalk.green(`\nSession started: ${name}`));
       if (gitInfo) {
         console.log(chalk.gray(`  Branch: ${gitInfo.branch}`));
       }
@@ -328,7 +328,7 @@ program
         const notes = getNotes(updated.id!);
         console.log(JSON.stringify(sessionToJSON(updated, { files, commits, aiUsage, notes })));
       } else {
-        console.log(chalk.green('\n✓ Session ended\n'));
+        console.log(chalk.green('\nSession ended\n'));
         displaySession(updated);
       }
     }
@@ -469,7 +469,7 @@ program
       if (options.json) {
         jsonError('missing_tokens', msg);
       } else {
-        console.log(chalk.red(`\n✗ ${msg}\n`));
+        console.log(chalk.red(`\n${msg}\n`));
       }
       return;
     }
@@ -478,7 +478,7 @@ program
     let pricingInfo: { source: 'built-in' | 'custom' | 'manual'; modelKnown: boolean; inputPer1M: number; outputPer1M: number } | undefined;
 
     if (cost === undefined || cost === null) {
-      // Auto-calculate from pricing table (try provider/model → model)
+      // Auto-calculate from pricing table (try provider/model -> model)
       const auto = estimateCost(options.model, promptTk || totalTokens * 0.7, completionTk || totalTokens * 0.3, options.provider);
       if (auto !== null) {
         cost = Math.round(auto.cost * 1e10) / 1e10;
@@ -488,7 +488,7 @@ program
         if (options.json) {
           jsonError('unknown_model', msg, { model: options.model, provider: options.provider });
         } else {
-          console.log(chalk.red(`\n✗ ${msg}\n`));
+          console.log(chalk.red(`\n${msg}\n`));
         }
         return;
       }
@@ -523,7 +523,7 @@ program
         session: { id: session.id, aiCost: updated?.aiCost || 0, aiTokens: updated?.aiTokens || 0 },
       })));
     } else {
-      console.log(chalk.green(`\n✓ Logged: ${totalTokens.toLocaleString()} tokens, ${formatCost(cost)}`));
+      console.log(chalk.green(`\nLogged: ${totalTokens.toLocaleString()} tokens, ${formatCost(cost)}`));
       console.log(chalk.gray(`  Session total: ${(updated?.aiTokens || 0).toLocaleString()} tokens, ${formatCost(updated?.aiCost || 0)}\n`));
     }
   });
@@ -614,12 +614,12 @@ pricingCmd
     const inp = parseFloat(input);
     const out = parseFloat(output);
     if (isNaN(inp) || isNaN(out)) {
-      console.log(chalk.red('\n✗ Input and output must be numbers (dollars per 1M tokens)\n'));
+      console.log(chalk.red('\nInput and output must be numbers (dollars per 1M tokens)\n'));
       return;
     }
     const key = opts.provider ? `${opts.provider}/${model}` : model;
     setPricing(key, inp, out);
-    console.log(chalk.green(`\n✓ ${key}: input=$${inp}/1M, output=$${out}/1M`));
+    console.log(chalk.green(`\n${key}: input=$${inp}/1M, output=$${out}/1M`));
     console.log(chalk.gray(`  Saved to ${getPricingPath()}\n`));
   });
 
@@ -628,7 +628,7 @@ pricingCmd
   .description('Remove all custom pricing overrides (revert to defaults)')
   .action(() => {
     resetPricing();
-    console.log(chalk.green('\n✓ Pricing reset to defaults\n'));
+    console.log(chalk.green('\nPricing reset to defaults\n'));
   });
 
 // ─── Note ─────────────────────────────────────────────────────
@@ -667,7 +667,7 @@ program
     if (options.json) {
       console.log(JSON.stringify(jsonWrap(note)));
     } else {
-      console.log(chalk.green(`\n✓ Note added to session ${session.id}: "${message}"\n`));
+      console.log(chalk.green(`\nNote added to session ${session.id}: "${message}"\n`));
     }
   });
 
@@ -686,7 +686,7 @@ program
       if (recovered.length === 0) {
         console.log(chalk.gray(`\nNo stale sessions found (older than ${options.maxAge}h).\n`));
       } else {
-        console.log(chalk.green(`\n✓ Recovered ${recovered.length} stale session(s):`));
+        console.log(chalk.green(`\nRecovered ${recovered.length} stale session(s):`));
         for (const s of recovered) {
           console.log(chalk.gray(`  #${s.id} "${s.name}" (started ${s.startTime})`));
         }

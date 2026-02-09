@@ -177,7 +177,7 @@ You: Fix the payment processing bug and add retry logic
 
 Agent: Starting session tracking...
   $ cs start "Fix payment processing + retry"
-  ✓ Session started
+  Session started
 
   [Agent works: reads files, edits code, runs tests...]
   $ cs log-ai -p anthropic -m claude-opus-4-6 --prompt-tokens 8000 --completion-tokens 4000
@@ -185,7 +185,7 @@ Agent: Starting session tracking...
   $ cs log-ai -p anthropic -m claude-opus-4-6 --prompt-tokens 5000 --completion-tokens 3000
 
   $ cs end -n "Fixed payment bug, added exponential backoff retry"
-  ✓ Session ended
+  Session ended
 
   Session: 12m • 6 files • 2 commits • $0.76 AI cost
 ```
