@@ -1,6 +1,6 @@
 {
   "name": "codesession-cli",
-  "version": "1.8.1",
+  "version": "1.8.2",
   "description": "Track AI agent & coding session costs — files, commits, tokens. Works with OpenClaw, Claude Code, and any AI agent. Includes programmatic API with budget enforcement.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
