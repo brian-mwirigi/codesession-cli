@@ -1,11 +1,24 @@
 {
   "name": "codesession-cli",
-  "version": "1.0.0",
-  "description": "Track your AI coding sessions: time, files, commits, AI costs",
+  "version": "1.2.0",
+  "description": "Track AI agent & coding session costs — files, commits, tokens. Works with OpenClaw, Claude Code, and any AI agent. Includes programmatic API with budget enforcement.",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "bin": {
     "codesession": "./dist/index.js",
     "cs": "./dist/index.js"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./agents": {
+      "import": "./dist/agents.js",
+      "require": "./dist/agents.js",
+      "types": "./dist/agents.d.ts"
+    }
   },
   "scripts": {
     "build": "tsc",
@@ -18,10 +31,16 @@
     "coding",
     "session",
     "tracker",
-    "productivity",
+    "ai-agent",
+    "openclaw",
+    "claude-code",
+    "cost-tracking",
+    "token-tracking",
     "git",
-    "time-tracking",
-    "cli"
+    "cli",
+    "agents",
+    "budget",
+    "observability"
   ],
   "author": "Brian Mwirigi",
   "license": "MIT",
@@ -34,6 +53,12 @@
     "chokidar": "^3.5.3",
     "simple-git": "^3.22.0"
   },
+  "files": [
+    "dist",
+    "skills",
+    "README.md",
+    "LICENSE"
+  ],
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.8",
     "@types/node": "^20.10.6",
