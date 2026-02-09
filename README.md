@@ -99,16 +99,19 @@ codesession-cli ships as an [OpenClaw](https://openclaw.ai) skill. The agent aut
 
 ### Install the skill
 
-Copy the skill to your OpenClaw workspace:
+```bash
+# One command via ClawHub (recommended)
+clawhub install codesession
+```
+
+Or manually:
 
 ```bash
-# Option 1: Copy from npm package
+# Copy from npm package
 cp -r $(npm root -g)/codesession-cli/skills/codesession ~/.openclaw/skills/
-
-# Option 2: Clone and copy
-git clone https://github.com/brian-mwirigi/codesession-cli.git
-cp -r codesession-cli/skills/codesession ~/.openclaw/skills/
 ```
+
+> See [docs/integrations/openclaw.md](docs/integrations/openclaw.md) for a full setup + example transcript.
 
 ### What it does
 

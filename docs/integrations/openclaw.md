@@ -3,10 +3,16 @@
 ## Setup
 
 ```bash
-# Install codesession-cli
+# 1. Install codesession-cli
 npm install -g codesession-cli
 
-# Copy the skill to your OpenClaw workspace
+# 2. Install the skill via ClawHub (recommended)
+clawhub install codesession
+```
+
+Or copy manually:
+
+```bash
 cp -r $(npm root -g)/codesession-cli/skills/codesession ~/.openclaw/skills/
 ```
 
