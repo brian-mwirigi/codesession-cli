@@ -333,9 +333,17 @@ export function startDashboard(options: DashboardOptions = {}): void {
 
   // ── SPA fallback ─────────────────────────────────────────
 
+  // Read index.html once; inject token if needed
+  const indexPath = join(staticDir, 'index.html');
+  const rawHtml = readFileSync(indexPath, 'utf-8');
+  const servedHtml = token
+    ? rawHtml.replace('</head>', `<script>window.__CS_TOKEN=${JSON.stringify(token)};</script>\n</head>`)
+    : rawHtml;
+
   app.use((_req: Request, res: Response) => {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.sendFile(join(staticDir, 'index.html'));
+    res.setHeader('Content-Type', 'text/html');
+    res.send(servedHtml);
   });
 
   // ── Port conflict handling & startup ──────────────────────

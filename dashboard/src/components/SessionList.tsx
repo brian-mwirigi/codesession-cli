@@ -68,7 +68,11 @@ export default function SessionList({ onSessionClick }: Props) {
   };
 
   const handleExport = (format: 'json' | 'csv') => {
-    window.open(`/api/v1/export?format=${format}`, '_blank');
+    const token = (window as any).__CS_TOKEN
+      || new URLSearchParams(window.location.search).get('token')
+      || '';
+    const tokenParam = token ? `&token=${encodeURIComponent(token)}` : '';
+    window.open(`/api/v1/export?format=${format}${tokenParam}`, '_blank');
   };
 
   return (
