@@ -220,13 +220,20 @@ console.log(`Done: ${summary.filesChanged} files, $${summary.aiCost}`);
 | Command | Description |
 |---------|-------------|
 | `cs start <name>` | Start tracking a session |
-| `cs end [-n notes]` | End session, show summary |
-| `cs status` | Show active session |
+| `cs start --resume` | Resume existing session for current directory |
+| `cs start --close-stale` | Auto-close orphaned sessions, then start |
+| `cs end [-n notes] [-s id]` | End session (active or by ID) |
+| `cs status [-s id]` | Show active session (or specific session) |
 | `cs show [id] [--files] [--commits]` | Show session details |
 | `cs list [-l limit]` | List recent sessions |
 | `cs stats` | Overall statistics |
-| `cs log-ai -p <provider> -m <model> [options]` | Log AI usage (cost auto-derived or manual) |
+| `cs log-ai -p <provider> -m <model> [opts]` | Log AI usage (cost auto-derived or manual) |
+| `cs note <message> [-s id]` | Add timestamped annotation to session |
+| `cs recover [--max-age hours]` | Auto-end stale sessions older than N hours |
 | `cs export [--format json\|csv] [--limit n]` | Export sessions as JSON or CSV |
+| `cs pricing list` | Show all model prices (built-in + custom) |
+| `cs pricing set <model> <input> <output>` | Set custom pricing per 1M tokens |
+| `cs pricing reset` | Remove custom overrides, revert to defaults |
 
 All commands support `--json` for machine-readable output.
 
@@ -240,12 +247,84 @@ All commands support `--json` for machine-readable output.
 | `--prompt-tokens` | Prompt/input tokens |
 | `--completion-tokens` | Completion/output tokens |
 | `-c, --cost` | Cost in USD (auto-calculated if omitted for known models) |
+| `-s, --session <id>` | Target a specific session instead of the active one |
+
+### Concurrency & multiple repos
+
+Multiple agents or repos on the same machine can safely run concurrently:
+
+```bash
+# Terminal 1 (repo A)
+cd ~/project-a && cs start "Fix bug" --close-stale
+cs log-ai -p anthropic -m claude-sonnet-4 --prompt-tokens 5000 --completion-tokens 1000
+
+# Terminal 2 (repo B) — target by session ID
+cd ~/project-b && cs start "Add feature" --close-stale
+cs log-ai -p openai -m gpt-4o -t 8000 -c 0.04 -s 42
+```
+
+SQLite WAL mode ensures writes don't block each other.
+
+### Crash resilience
+
+If an agent dies mid-session, the next `cs start` won't leave orphans:
+
+```bash
+# Resume the existing session for this directory
+cs start "Continue work" --resume
+
+# Or auto-close all stale sessions first
+cs start "Fresh start" --close-stale
+
+# Bulk-recover: end all sessions older than 12 hours
+cs recover --max-age 12
+```
+
+### Session annotations
+
+Add timestamped notes within a session for sub-task visibility:
+
+```bash
+cs note "Starting refactor phase"
+cs note "Tests passing, moving to docs"
+```
+
+Annotations appear in `cs show --json` under the `annotations` array.
 
 ## Data Storage
 
-All data stored locally in `~/.devsession/sessions.db` (SQLite with WAL mode for concurrent access).
+All data stored locally in `~/.codesession/sessions.db` (SQLite with WAL mode for concurrent access).
 
 No telemetry. No cloud. 100% local.
+
+> **Migration:** If upgrading from v1.3.x, your data is auto-migrated from `~/.devsession/` to `~/.codesession/` on first run.
+
+## How tracking works
+
+**File changes** — Detected via [chokidar](https://github.com/paulmillr/chokidar) filesystem watcher (when running in long-lived mode, i.e. `cs start` without `--json`). Watches the working directory for `add`, `change`, and `unlink` events. Ignores `node_modules`, `dist`, `build`, `.git`, and dotfiles. Rapid changes to the same file are deduplicated within a 1-second window.
+
+**Commits** — Detected by polling `git log` every 10 seconds (via [simple-git](https://github.com/steveukx/git-js)). Picks up the latest commit hash in the current repository. Only tracks commits made during the session.
+
+**AI usage** — Explicitly logged via `cs log-ai` (CLI) or `session.logAI()` (API). No API call interception — you report what you used, and codesession records it.
+
+> **Note:** In `--json` mode (typical for agents), the file watcher and commit poller are *not* started — agents call `cs log-ai` and `cs end` as discrete commands, so file/commit counts reflect what the agent explicitly logged or what was committed between start/end.
+
+## Configurable pricing
+
+codesession ships with built-in pricing for 17 models. Override or add models:
+
+```bash
+# See current pricing
+cs pricing list
+
+# Add a custom/fine-tuned model
+cs pricing set my-ft-model 5.00 15.00
+
+# Reset to defaults
+cs pricing reset
+```
+
+Custom pricing is stored in `~/.codesession/pricing.json` and merged with built-in defaults.
 
 ## Example Output
 
@@ -269,9 +348,99 @@ Session: Build user auth
 └──────────────┴────────────────────────────┘
 ```
 
+### Example `cs show --json` output
+
+```json
+{
+  "id": 42,
+  "name": "Fix payment processing + retry",
+  "status": "completed",
+  "startTime": "2026-02-09T14:30:00.000Z",
+  "endTime": "2026-02-09T14:42:17.000Z",
+  "duration": 737,
+  "durationFormatted": "12m",
+  "workingDirectory": "/home/user/project",
+  "filesChanged": 6,
+  "commits": 2,
+  "aiTokens": 46000,
+  "aiCost": 1.065,
+  "notes": "Fixed payment bug, added exponential backoff retry",
+  "files": [
+    { "id": 1, "sessionId": 42, "filePath": "src/payments.ts", "changeType": "modified", "timestamp": "2026-02-09T14:32:11.000Z" },
+    { "id": 2, "sessionId": 42, "filePath": "src/retry.ts", "changeType": "created", "timestamp": "2026-02-09T14:35:44.000Z" },
+    { "id": 3, "sessionId": 42, "filePath": "tests/payments.test.ts", "changeType": "modified", "timestamp": "2026-02-09T14:38:20.000Z" }
+  ],
+  "commits": [
+    { "id": 1, "sessionId": 42, "hash": "a1b2c3d", "message": "fix: payment processing null check", "timestamp": "2026-02-09T14:36:00.000Z" },
+    { "id": 2, "sessionId": 42, "hash": "e4f5g6h", "message": "feat: add exponential backoff retry", "timestamp": "2026-02-09T14:41:00.000Z" }
+  ],
+  "aiUsage": [
+    { "id": 1, "sessionId": 42, "provider": "anthropic", "model": "claude-opus-4-6", "tokens": 12000, "promptTokens": 8000, "completionTokens": 4000, "cost": 0.42, "timestamp": "2026-02-09T14:31:05.000Z" },
+    { "id": 2, "sessionId": 42, "provider": "anthropic", "model": "claude-opus-4-6", "tokens": 18000, "promptTokens": 12000, "completionTokens": 6000, "cost": 0.63, "timestamp": "2026-02-09T14:34:22.000Z" },
+    { "id": 3, "sessionId": 42, "provider": "anthropic", "model": "claude-sonnet-4", "tokens": 16000, "promptTokens": 14000, "completionTokens": 2000, "cost": 0.072, "timestamp": "2026-02-09T14:39:50.000Z" }
+  ],
+  "annotations": [
+    { "id": 1, "sessionId": 42, "message": "Starting retry logic implementation", "timestamp": "2026-02-09T14:35:00.000Z" },
+    { "id": 2, "sessionId": 42, "message": "Tests passing, cleaning up", "timestamp": "2026-02-09T14:40:30.000Z" }
+  ]
+}
+```
+
 ## License
 
 MIT
+
+## Integration Contract (for agent frameworks)
+
+If you're building an agent framework integration (OpenClaw, Claude Code, custom), here's the contract:
+
+### Exit codes
+
+| Code | Meaning |
+|------|---------------------------|
+| `0` | Success |
+| `1` | Error (parse `stderr` or `--json` output for `error` field) |
+
+### Non-interactive guarantees
+
+- All commands with `--json` are fully non-interactive (no prompts, no TTY input)
+- `cs start` with `--json` calls `process.exit(0)` — safe for `execSync`
+- `cs start` when a session is already active returns `{"error": "session_active", ...}` (exit 0, not 1) — check the `error` field
+- Use `--close-stale` or `--resume` to avoid "session_active" errors in automation
+
+### `cs status --json` contract
+
+Always returns these fields when a session is active:
+
+```json
+{
+  "id": 42,
+  "name": "...",
+  "status": "active",
+  "aiCost": 1.23,
+  "aiTokens": 45000,
+  "liveDuration": 847,
+  "liveDurationFormatted": "14m"
+}
+```
+
+When no session: `{"error": "no_active_session"}`
+
+### Failsafe: `cs` not installed
+
+Agent skills should check `which cs` (or `where cs` on Windows) before attempting to track. If not available, degrade gracefully — don't block the agent's primary task.
+
+### Recommended agent lifecycle
+
+```
+cs start "task" --close-stale --json  →  capture session ID
+cs note "phase 1: analysis" --json
+[do work, log AI calls]
+cs log-ai -p ... -m ... --prompt-tokens ... --completion-tokens ... --json
+cs note "phase 2: implementation" --json
+[do more work]
+cs end -n "summary" --json              →  get final totals
+```
 
 ## Author
 

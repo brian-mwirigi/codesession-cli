@@ -49,3 +49,10 @@ export interface SessionStats {
   totalAICost: number;
   avgSessionTime: number;
 }
+
+export interface SessionNote {
+  id?: number;
+  sessionId: number;
+  message: string;
+  timestamp: string;
+}

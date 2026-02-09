@@ -4,7 +4,9 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import { 
   createSession, 
-  getActiveSession, 
+  getActiveSession,
+  getActiveSessions,
+  getActiveSessionForDir,
   endSession, 
   getSession, 
   getSessions, 
@@ -14,6 +16,13 @@ import {
   addAIUsage,
   getAIUsage,
   exportSessions,
+  loadPricing,
+  setPricing,
+  resetPricing,
+  getPricingPath,
+  addNote,
+  getNotes,
+  recoverStaleSessions,
 } from './db';
 import { initGit, checkForNewCommits, getGitInfo } from './git';
 import { startWatcher, stopWatcher } from './watcher';
@@ -31,11 +40,11 @@ const program = new Command();
 program
   .name('codesession')
   .description('Track AI coding sessions & agent runs — time, files, commits, costs')
-  .version('1.3.0');
+  .version('1.4.0');
 
 // ─── Helpers ───────────────────────────────────────────────────
 
-function sessionToJSON(session: any, extras?: { files?: any[]; commits?: any[]; aiUsage?: any[] }) {
+function sessionToJSON(session: any, extras?: { files?: any[]; commits?: any[]; aiUsage?: any[]; notes?: any[] }) {
   const obj: any = {
     id: session.id,
     name: session.name,
@@ -54,38 +63,17 @@ function sessionToJSON(session: any, extras?: { files?: any[]; commits?: any[]; 
   if (extras?.files) obj.files = extras.files;
   if (extras?.commits) obj.commits = extras.commits;
   if (extras?.aiUsage) obj.aiUsage = extras.aiUsage;
+  if (extras?.notes) obj.annotations = extras.notes;
   return obj;
 }
 
-// ─── Pricing Table ─────────────────────────────────────────────
-
-const PRICING: Record<string, { input: number; output: number }> = {
-  // Anthropic (per 1M tokens)
-  'claude-opus-4-6': { input: 15, output: 75 },
-  'claude-sonnet-4-5': { input: 3, output: 15 },
-  'claude-sonnet-4': { input: 3, output: 15 },
-  'claude-haiku-3.5': { input: 0.80, output: 4 },
-  // OpenAI (per 1M tokens)
-  'gpt-4o': { input: 2.50, output: 10 },
-  'gpt-4o-mini': { input: 0.15, output: 0.60 },
-  'gpt-4.1': { input: 2, output: 8 },
-  'gpt-4.1-mini': { input: 0.40, output: 1.60 },
-  'gpt-4.1-nano': { input: 0.10, output: 0.40 },
-  'o3': { input: 2, output: 8 },
-  'o4-mini': { input: 1.10, output: 4.40 },
-  // Google (per 1M tokens)
-  'gemini-2.5-pro': { input: 1.25, output: 10 },
-  'gemini-2.5-flash': { input: 0.15, output: 0.60 },
-  'gemini-2.0-flash': { input: 0.10, output: 0.40 },
-  // DeepSeek
-  'deepseek-r1': { input: 0.55, output: 2.19 },
-  'deepseek-v3': { input: 0.27, output: 1.10 },
-};
+// ─── Pricing ────────────────────────────────────────────────────
 
 function estimateCost(model: string, promptTokens: number, completionTokens: number): number | null {
-  const pricing = PRICING[model];
-  if (!pricing) return null;
-  return (promptTokens * pricing.input + completionTokens * pricing.output) / 1_000_000;
+  const pricing = loadPricing();
+  const entry = pricing[model];
+  if (!entry) return null;
+  return (promptTokens * entry.input + completionTokens * entry.output) / 1_000_000;
 }
 
 // ─── Start ─────────────────────────────────────────────────────
@@ -95,19 +83,61 @@ program
   .description('Start a new coding session')
   .argument('<name>', 'Session name')
   .option('--json', 'Output JSON (for agents)')
+  .option('--resume', 'Resume existing active session for this directory instead of failing')
+  .option('--close-stale', 'Auto-close any existing active sessions before starting')
   .action(async (name: string, options: any) => {
-    const active = getActiveSession();
-    if (active) {
-      if (options.json) {
-        console.log(JSON.stringify({ error: 'session_active', activeSession: active.name, id: active.id }));
-      } else {
-        console.log(chalk.yellow(`\nSession "${active.name}" is already active.`));
-        console.log(chalk.gray('End it with: cs end\n'));
+    const cwd = process.cwd();
+
+    // Check for existing active sessions
+    const allActive = getActiveSessions();
+
+    if (allActive.length > 0) {
+      // --resume: reuse the active session for this directory
+      if (options.resume) {
+        const forDir = getActiveSessionForDir(cwd);
+        if (forDir) {
+          if (options.json) {
+            const gitInfo = await getGitInfo();
+            console.log(JSON.stringify({ id: forDir.id, name: forDir.name, directory: cwd, branch: gitInfo?.branch || null, resumed: true }));
+            process.exit(0);
+          } else {
+            console.log(chalk.green(`\n✓ Resumed session: ${forDir.name} (id: ${forDir.id})`));
+            console.log(chalk.gray(`  Started: ${forDir.startTime}\n`));
+          }
+          return;
+        }
+        // No active session for this dir — fall through and create new one
       }
-      return;
+
+      // --close-stale: end all existing active sessions
+      if (options.closeStale) {
+        for (const s of allActive) {
+          endSession(s.id!, new Date().toISOString(), `Auto-closed by new session "${name}"`);
+        }
+        if (!options.json) {
+          console.log(chalk.gray(`  Closed ${allActive.length} stale session(s)`));
+        }
+      } else if (!options.resume) {
+        // Default: warn about active session
+        const active = allActive[0];
+        if (options.json) {
+          console.log(JSON.stringify({
+            error: 'session_active',
+            activeSession: active.name,
+            id: active.id,
+            hint: 'Use --resume to reattach or --close-stale to auto-close',
+          }));
+        } else {
+          console.log(chalk.yellow(`\nSession "${active.name}" is already active (id: ${active.id}).`));
+          console.log(chalk.gray('  Options:'));
+          console.log(chalk.gray('    cs end              — end it manually'));
+          console.log(chalk.gray('    cs start --resume   — reuse session for this directory'));
+          console.log(chalk.gray('    cs start --close-stale — auto-close stale sessions\n'));
+        }
+        return;
+      }
     }
 
-    const cwd = process.cwd();
     const sessionId = createSession({
       name,
       startTime: new Date().toISOString(),
@@ -157,9 +187,24 @@ program
   .command('end')
   .description('End the active session')
   .option('-n, --notes <notes>', 'Session notes')
+  .option('-s, --session <id>', 'End a specific session by ID', parseInt)
   .option('--json', 'Output JSON (for agents)')
   .action((options) => {
-    const session = getActiveSession();
+    let session;
+    if (options.session) {
+      session = getSession(options.session);
+      if (!session || session.status !== 'active') {
+        if (options.json) {
+          console.log(JSON.stringify({ error: 'session_not_found', id: options.session }));
+        } else {
+          console.log(chalk.yellow(`\nNo active session with id ${options.session}.\n`));
+        }
+        return;
+      }
+    } else {
+      session = getActiveSession();
+    }
+
     if (!session) {
       if (options.json) {
         console.log(JSON.stringify({ error: 'no_active_session' }));
@@ -183,7 +228,8 @@ program
         const files = getFileChanges(updated.id!);
         const commits = getCommits(updated.id!);
         const aiUsage = getAIUsage(updated.id!);
-        console.log(JSON.stringify(sessionToJSON(updated, { files, commits, aiUsage })));
+        const notes = getNotes(updated.id!);
+        console.log(JSON.stringify(sessionToJSON(updated, { files, commits, aiUsage, notes })));
       } else {
         console.log(chalk.green('\n✓ Session ended\n'));
         displaySession(updated);
@@ -224,6 +270,7 @@ program
       if (options.files) extras.files = getFileChanges(session.id!);
       if (options.commits) extras.commits = getCommits(session.id!);
       extras.aiUsage = getAIUsage(session.id!);
+      extras.notes = getNotes(session.id!);
       console.log(JSON.stringify(sessionToJSON(session, extras)));
     } else {
       displaySession(session);
@@ -290,9 +337,23 @@ program
   .option('-c, --cost <cost>', 'Cost in dollars (auto-calculated if omitted)', parseFloat)
   .option('--prompt-tokens <n>', 'Prompt/input tokens', parseInt)
   .option('--completion-tokens <n>', 'Completion/output tokens', parseInt)
+  .option('-s, --session <id>', 'Target a specific session by ID', parseInt)
   .option('--json', 'Output JSON (for agents)')
   .action((options) => {
-    const session = getActiveSession();
+    let session;
+    if (options.session) {
+      session = getSession(options.session);
+      if (!session || session.status !== 'active') {
+        if (options.json) {
+          console.log(JSON.stringify({ error: 'session_not_found', id: options.session }));
+        } else {
+          console.log(chalk.yellow(`\nNo active session with id ${options.session}.\n`));
+        }
+        return;
+      }
+    } else {
+      session = getActiveSession();
+    }
     if (!session) {
       if (options.json) {
         console.log(JSON.stringify({ error: 'no_active_session' }));
@@ -362,9 +423,15 @@ program
 program
   .command('status')
   .description('Show active session status')
+  .option('-s, --session <id>', 'Show a specific session by ID', parseInt)
   .option('--json', 'Output JSON (for agents)')
   .action((options) => {
-    const session = getActiveSession();
+    let session;
+    if (options.session) {
+      session = getSession(options.session);
+    } else {
+      session = getActiveSession();
+    }
     if (!session) {
       if (options.json) {
         console.log(JSON.stringify({ error: 'no_active_session' }));
@@ -380,8 +447,9 @@ program
       const start = new Date(session.startTime);
       const liveDuration = Math.floor((now.getTime() - start.getTime()) / 1000);
       const aiUsage = getAIUsage(session.id!);
+      const notes = getNotes(session.id!);
       console.log(JSON.stringify({
-        ...sessionToJSON(session),
+        ...sessionToJSON(session, { notes }),
         liveDuration,
         liveDurationFormatted: formatDuration(liveDuration),
         aiUsage,
@@ -404,14 +472,125 @@ program
     console.log(output);
   });
 
+// ─── Pricing ────────────────────────────────────────────────
+
+const pricingCmd = program
+  .command('pricing')
+  .description('Manage the model pricing table used for cost auto-calculation');
+
+pricingCmd
+  .command('list')
+  .description('Show all known model prices')
+  .option('--json', 'Output JSON')
+  .action((options) => {
+    const pricing = loadPricing();
+    if (options.json) {
+      console.log(JSON.stringify(pricing, null, 2));
+    } else {
+      console.log(chalk.bold('\nModel Pricing (per 1M tokens)\n'));
+      const sorted = Object.entries(pricing).sort(([a], [b]) => a.localeCompare(b));
+      for (const [model, p] of sorted) {
+        console.log(`  ${chalk.cyan(model.padEnd(24))} input: $${p.input.toFixed(2).padStart(6)}   output: $${p.output.toFixed(2).padStart(6)}`);
+      }
+      console.log(chalk.gray(`\n  Config: ${getPricingPath()}\n`));
+    }
+  });
+
+pricingCmd
+  .command('set <model> <input> <output>')
+  .description('Set pricing for a model (per 1M tokens)')
+  .action((model: string, input: string, output: string) => {
+    const inp = parseFloat(input);
+    const out = parseFloat(output);
+    if (isNaN(inp) || isNaN(out)) {
+      console.log(chalk.red('\n✗ Input and output must be numbers (dollars per 1M tokens)\n'));
+      return;
+    }
+    setPricing(model, inp, out);
+    console.log(chalk.green(`\n✓ ${model}: input=$${inp}/1M, output=$${out}/1M`));
+    console.log(chalk.gray(`  Saved to ${getPricingPath()}\n`));
+  });
+
+pricingCmd
+  .command('reset')
+  .description('Remove all custom pricing overrides (revert to defaults)')
+  .action(() => {
+    resetPricing();
+    console.log(chalk.green('\n✓ Pricing reset to defaults\n'));
+  });
+
+// ─── Note ─────────────────────────────────────────────────────
+
+program
+  .command('note')
+  .description('Add a timestamped annotation to the active session')
+  .argument('<message>', 'Note message')
+  .option('-s, --session <id>', 'Target a specific session by ID', parseInt)
+  .option('--json', 'Output JSON (for agents)')
+  .action((message: string, options) => {
+    let session;
+    if (options.session) {
+      session = getSession(options.session);
+      if (!session || session.status !== 'active') {
+        if (options.json) {
+          console.log(JSON.stringify({ error: 'session_not_found', id: options.session }));
+        } else {
+          console.log(chalk.yellow(`\nNo active session with id ${options.session}.\n`));
+        }
+        return;
+      }
+    } else {
+      session = getActiveSession();
+    }
+    if (!session) {
+      if (options.json) {
+        console.log(JSON.stringify({ error: 'no_active_session' }));
+      } else {
+        console.log(chalk.yellow('\nNo active session.\n'));
+      }
+      return;
+    }
+
+    const note = addNote(session.id!, message);
+    if (options.json) {
+      console.log(JSON.stringify(note));
+    } else {
+      console.log(chalk.green(`\n✓ Note added to session ${session.id}: "${message}"\n`));
+    }
+  });
+
+// ─── Recover ──────────────────────────────────────────────────
+
+program
+  .command('recover')
+  .description('Auto-end stale active sessions older than N hours')
+  .option('--max-age <hours>', 'Max age in hours before a session is considered stale', parseFloat, 24)
+  .option('--json', 'Output JSON (for agents)')
+  .action((options) => {
+    const recovered = recoverStaleSessions(options.maxAge);
+    if (options.json) {
+      console.log(JSON.stringify({ recovered: recovered.length, sessions: recovered.map((s) => ({ id: s.id, name: s.name, startTime: s.startTime })) }));
+    } else {
+      if (recovered.length === 0) {
+        console.log(chalk.gray(`\nNo stale sessions found (older than ${options.maxAge}h).\n`));
+      } else {
+        console.log(chalk.green(`\n✓ Recovered ${recovered.length} stale session(s):`));
+        for (const s of recovered) {
+          console.log(chalk.gray(`  #${s.id} "${s.name}" (started ${s.startTime})`));
+        }
+        console.log();
+      }
+    }
+  });
+
 // Only parse CLI args when run directly (not when imported as a library)
 if (require.main === module) {
   program.parse();
 }
 
 // Programmatic API exports
-export { createSession, getActiveSession, endSession, getSession, getSessions, getStats, addFileChange, addCommit, addAIUsage, getFileChanges, getCommits, getAIUsage, exportSessions } from './db';
+export { createSession, getActiveSession, getActiveSessions, getActiveSessionForDir, endSession, getSession, getSessions, getStats, addFileChange, addCommit, addAIUsage, getFileChanges, getCommits, getAIUsage, exportSessions, loadPricing, setPricing, resetPricing, getPricingPath, addNote, getNotes, recoverStaleSessions } from './db';
 export { initGit, checkForNewCommits, getGitInfo } from './git';
 export { startWatcher, stopWatcher } from './watcher';
-export { Session, FileChange, Commit, AIUsage, SessionStats } from './types';
+export { Session, FileChange, Commit, AIUsage, SessionStats, SessionNote } from './types';
 export { AgentSession, AgentSessionConfig, AgentSessionSummary, BudgetExceededError, runAgentSession } from './agents';
