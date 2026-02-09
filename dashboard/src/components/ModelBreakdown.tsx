@@ -110,7 +110,7 @@ export default function ModelBreakdown() {
       {/* Provider Summary */}
       {providers.length > 0 && (
         <div className="card">
-          <div className="card-header">Provider Summary</div>
+          <div className="card-header"><span className="card-title">Provider Summary</span></div>
           <div className="card-body--flush">
             <table className="tbl">
               <thead>
@@ -143,7 +143,7 @@ export default function ModelBreakdown() {
       {/* Charts Row */}
       <div className="grid grid--2">
         <div className="card">
-          <div className="card-header">Cost by Model</div>
+          <div className="card-header"><span className="card-title">Cost by Model</span></div>
           <div className="card-body">
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
@@ -158,13 +158,13 @@ export default function ModelBreakdown() {
         </div>
 
         <div className="card">
-          <div className="card-header">Token Usage by Model (Top 10)</div>
+          <div className="card-header"><span className="card-title">Token Usage by Model (Top 10)</span></div>
           <div className="card-body">
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={tokenBar} layout="vertical" margin={{ left: 100 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis type="number" tick={{ fill: 'var(--text-3)', fontSize: 11 }} />
-                <YAxis type="category" dataKey="model" tick={{ fill: 'var(--text-2)', fontSize: 11 }} width={100} />
+                <XAxis type="number" tick={{ fill: '#71717a', fontSize: 11 }} />
+                <YAxis type="category" dataKey="model" tick={{ fill: '#a1a1aa', fontSize: 11 }} width={100} />
                 <Tooltip content={<CustomTooltip />} />
                 <Bar dataKey="prompt" name="Prompt" stackId="a" fill="#6366f1" radius={[0, 0, 0, 0]} />
                 <Bar dataKey="completion" name="Completion" stackId="a" fill="#06b6d4" radius={[0, 4, 4, 0]} />
@@ -177,7 +177,7 @@ export default function ModelBreakdown() {
       {/* Token Ratio Analysis */}
       {ratios.length > 0 && (
         <div className="card">
-          <div className="card-header">Prompt:Completion Ratio by Model</div>
+          <div className="card-header"><span className="card-title">Prompt:Completion Ratio by Model</span></div>
           <div className="card-body--flush">
             <table className="tbl">
               <thead>
@@ -218,7 +218,7 @@ export default function ModelBreakdown() {
 
       {/* Full Model Breakdown Table */}
       <div className="card">
-        <div className="card-header">All Models</div>
+        <div className="card-header"><span className="card-title">All Models</span></div>
         <div className="card-body--flush">
           <table className="tbl">
             <thead>

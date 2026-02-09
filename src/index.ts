@@ -38,7 +38,7 @@ import {
 import { formatDuration, formatCost } from './formatters';
 
 const program = new Command();
-const VERSION = '1.7.0';
+const VERSION = '1.7.1';
 const SCHEMA_VERSION = 1;
 
 program

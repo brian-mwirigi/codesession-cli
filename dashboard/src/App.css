@@ -322,12 +322,7 @@ body {
 
 /* ── Two-column layout ──────────────────────────────── */
 
-.grid-2 {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-bottom: 16px;
-}
+/* Removed: .grid-2 was an orphaned duplicate of .grid--2 */
 
 /* ── Tables ─────────────────────────────────────────── */
 
@@ -1126,7 +1121,7 @@ body {
 /* ── Responsive ─────────────────────────────────────── */
 
 @media (max-width: 900px) {
-  .grid-2 {
+  .grid--2 {
     grid-template-columns: 1fr;
   }
 }

@@ -230,8 +230,8 @@ export default function Insights() {
                 <ResponsiveContainer width="100%" height={260}>
                   <BarChart data={projectChartData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                    <XAxis dataKey="name" tick={{ fill: 'var(--text-3)', fontSize: 11 }} />
-                    <YAxis tick={{ fill: 'var(--text-3)', fontSize: 11 }} />
+                    <XAxis dataKey="name" tick={{ fill: '#71717a', fontSize: 11 }} />
+                    <YAxis tick={{ fill: '#71717a', fontSize: 11 }} />
                     <Tooltip content={<CustomTooltip />} />
                     <Bar dataKey="cost" name="Cost ($)" fill="#6366f1" radius={[4, 4, 0, 0]} />
                   </BarChart>
