@@ -47,7 +47,7 @@ Cost is auto-calculated from a configurable pricing table (17+ built-in models).
 ```bash
 cs status --json
 ```
-Returns JSON with current session cost, tokens, files changed, duration.
+Returns JSON with current session cost, tokens, files changed, duration. All JSON responses include `schemaVersion` and `codesessionVersion` fields.
 
 ### End session and get summary
 ```bash
@@ -93,7 +93,15 @@ Auto-ends any active sessions older than 12 hours.
 
 ## Pricing
 
-Pricing is configurable. Run `cs pricing list` to see all known model prices. The user can override or add models via `cs pricing set <model> <input> <output>` (per 1M tokens).
+Pricing is configurable. Run `cs pricing list` to see all known model prices. Override or add models:
+
+```bash
+# Plain model key
+cs pricing set my-model 5.00 15.00
+
+# Provider-namespaced key (avoids collisions)
+cs pricing set gpt-4o 2.50 10.00 --provider openai
+```
 
 If the model isn't in the pricing table, you must provide `-c <cost>` when logging.
 
@@ -109,6 +117,9 @@ If the user has set a budget or you detect high spending:
 - Use `--close-stale` on `cs start` to avoid "session_active" errors from prior crashes
 - If `cs` is not installed, skip session tracking — don't block the user's task
 - Prefer `--json` for all commands so you can parse the response
+- Sessions are scoped by **git root** — running from a subdirectory still matches the repo-level session
+- On errors in `--json` mode, exit code is always `1` and the response has `{ "error": { "code": "...", "message": "..." } }`
+- Check `schemaVersion` in JSON responses to detect breaking changes
 
 ## JSON output
 

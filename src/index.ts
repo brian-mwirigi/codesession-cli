@@ -13,6 +13,8 @@ import {
   getStats,
   getFileChanges,
   getCommits,
+  addFileChange,
+  addCommit,
   addAIUsage,
   getAIUsage,
   exportSessions,
@@ -24,7 +26,7 @@ import {
   getNotes,
   recoverStaleSessions,
 } from './db';
-import { initGit, checkForNewCommits, getGitInfo } from './git';
+import { initGit, checkForNewCommits, getGitInfo, getGitRoot, getGitHead, getGitDiffFiles, getGitLogCommits } from './git';
 import { startWatcher, stopWatcher } from './watcher';
 import { 
   displaySession, 
@@ -36,16 +38,32 @@ import {
 import { formatDuration, formatCost } from './formatters';
 
 const program = new Command();
+const VERSION = '1.5.0';
+const SCHEMA_VERSION = 1;
 
 program
   .name('codesession')
   .description('Track AI coding sessions & agent runs — time, files, commits, costs')
-  .version('1.4.0');
+  .version(VERSION);
 
 // ─── Helpers ───────────────────────────────────────────────────
 
+/** Emit a structured JSON error and exit 1. */
+function jsonError(code: string, message: string, extra?: Record<string, any>): never {
+  console.log(JSON.stringify({ schemaVersion: SCHEMA_VERSION, codesessionVersion: VERSION, error: { code, message, ...extra } }));
+  process.exit(1);
+  return undefined as never; // unreachable, helps TS
+}
+
+/** Wrap a JSON success payload with schema metadata. */
+function jsonWrap(data: Record<string, any>): Record<string, any> {
+  return { schemaVersion: SCHEMA_VERSION, codesessionVersion: VERSION, ...data };
+}
+
 function sessionToJSON(session: any, extras?: { files?: any[]; commits?: any[]; aiUsage?: any[]; notes?: any[] }) {
   const obj: any = {
+    schemaVersion: SCHEMA_VERSION,
+    codesessionVersion: VERSION,
     id: session.id,
     name: session.name,
     status: session.status,
@@ -54,6 +72,7 @@ function sessionToJSON(session: any, extras?: { files?: any[]; commits?: any[]; 
     duration: session.duration || null,
     durationFormatted: session.duration ? formatDuration(session.duration) : null,
     workingDirectory: session.workingDirectory,
+    gitRoot: session.gitRoot || null,
     filesChanged: session.filesChanged,
     commits: session.commits,
     aiTokens: session.aiTokens,
@@ -69,11 +88,48 @@ function sessionToJSON(session: any, extras?: { files?: any[]; commits?: any[]; 
 
 // ─── Pricing ────────────────────────────────────────────────────
 
-function estimateCost(model: string, promptTokens: number, completionTokens: number): number | null {
+function lookupPricing(model: string, provider?: string): { entry: { input: number; output: number }; source: 'built-in' | 'custom'; key: string } | null {
   const pricing = loadPricing();
-  const entry = pricing[model];
-  if (!entry) return null;
-  return (promptTokens * entry.input + completionTokens * entry.output) / 1_000_000;
+  // Try provider-namespaced key first (e.g. "anthropic/claude-sonnet-4")
+  if (provider) {
+    const namespacedKey = `${provider}/${model}`;
+    if (pricing[namespacedKey]) {
+      const isCustom = isCustomPricing(namespacedKey);
+      return { entry: pricing[namespacedKey], source: isCustom ? 'custom' : 'built-in', key: namespacedKey };
+    }
+  }
+  // Fallback to plain model name
+  if (pricing[model]) {
+    const isCustom = isCustomPricing(model);
+    return { entry: pricing[model], source: isCustom ? 'custom' : 'built-in', key: model };
+  }
+  return null;
+}
+
+/** Check if a model key exists in the user's custom pricing file. */
+function isCustomPricing(key: string): boolean {
+  const { existsSync, readFileSync } = require('fs');
+  const pPath = getPricingPath();
+  if (!existsSync(pPath)) return false;
+  try {
+    const user = JSON.parse(readFileSync(pPath, 'utf-8'));
+    return key in user;
+  } catch (_) { return false; }
+}
+
+function estimateCost(model: string, promptTokens: number, completionTokens: number, provider?: string): { cost: number; pricingInfo: { source: 'built-in' | 'custom' | 'manual'; modelKnown: boolean; inputPer1M: number; outputPer1M: number } } | null {
+  const lookup = lookupPricing(model, provider);
+  if (!lookup) return null;
+  const cost = (promptTokens * lookup.entry.input + completionTokens * lookup.entry.output) / 1_000_000;
+  return {
+    cost,
+    pricingInfo: {
+      source: lookup.source,
+      modelKnown: true,
+      inputPer1M: lookup.entry.input,
+      outputPer1M: lookup.entry.output,
+    },
+  };
 }
 
 // ─── Start ─────────────────────────────────────────────────────
@@ -88,17 +144,21 @@ program
   .action(async (name: string, options: any) => {
     const cwd = process.cwd();
 
+    // Resolve to git root when inside a repo (avoids subdirectory fragmentation)
+    const gitRoot = await getGitRoot(cwd);
+    const scopeDir = gitRoot || cwd;
+
     // Check for existing active sessions
     const allActive = getActiveSessions();
 
     if (allActive.length > 0) {
-      // --resume: reuse the active session for this directory
+      // --resume: reuse the active session for this directory/git root
       if (options.resume) {
-        const forDir = getActiveSessionForDir(cwd);
+        const forDir = getActiveSessionForDir(scopeDir);
         if (forDir) {
           if (options.json) {
             const gitInfo = await getGitInfo();
-            console.log(JSON.stringify({ id: forDir.id, name: forDir.name, directory: cwd, branch: gitInfo?.branch || null, resumed: true }));
+            console.log(JSON.stringify(jsonWrap({ id: forDir.id, name: forDir.name, directory: scopeDir, branch: gitInfo?.branch || null, resumed: true })));
             process.exit(0);
           } else {
             console.log(chalk.green(`\n✓ Resumed session: ${forDir.name} (id: ${forDir.id})`));
@@ -118,15 +178,14 @@ program
           console.log(chalk.gray(`  Closed ${allActive.length} stale session(s)`));
         }
       } else if (!options.resume) {
-        // Default: warn about active session
+        // Default: error about active session
         const active = allActive[0];
         if (options.json) {
-          console.log(JSON.stringify({
-            error: 'session_active',
+          jsonError('session_active', `Session "${active.name}" is already active`, {
             activeSession: active.name,
             id: active.id,
             hint: 'Use --resume to reattach or --close-stale to auto-close',
-          }));
+          });
         } else {
           console.log(chalk.yellow(`\nSession "${active.name}" is already active (id: ${active.id}).`));
           console.log(chalk.gray('  Options:'));
@@ -138,10 +197,15 @@ program
       }
     }
 
+    // Capture git HEAD at session start for later diff-based file/commit scan
+    const startHead = await getGitHead(scopeDir);
+
     const sessionId = createSession({
       name,
       startTime: new Date().toISOString(),
-      workingDirectory: cwd,
+      workingDirectory: scopeDir,
+      gitRoot: gitRoot || undefined,
+      startGitHead: startHead || undefined,
       filesChanged: 0,
       commits: 0,
       aiCost: 0,
@@ -150,11 +214,11 @@ program
     });
 
     // Initialize git tracking
-    initGit(cwd);
+    initGit(scopeDir);
     
     // Start file watcher (only for long-running mode, not --json agent calls)
     if (!options.json) {
-      startWatcher(sessionId, cwd);
+      startWatcher(sessionId, scopeDir);
 
       // Check for commits every 10 seconds
       const gitInterval = setInterval(async () => {
@@ -167,7 +231,7 @@ program
 
     if (options.json) {
       const gitInfo = await getGitInfo();
-      console.log(JSON.stringify({ id: sessionId, name, directory: cwd, branch: gitInfo?.branch || null }));
+      console.log(JSON.stringify(jsonWrap({ id: sessionId, name, directory: scopeDir, gitRoot: gitRoot || null, branch: gitInfo?.branch || null })));
       process.exit(0);
     } else {
       const gitInfo = await getGitInfo();
@@ -175,7 +239,10 @@ program
       if (gitInfo) {
         console.log(chalk.gray(`  Branch: ${gitInfo.branch}`));
       }
-      console.log(chalk.gray(`  Directory: ${cwd}`));
+      console.log(chalk.gray(`  Directory: ${scopeDir}`));
+      if (gitRoot && gitRoot !== cwd) {
+        console.log(chalk.gray(`  Git root: ${gitRoot} (scoped from ${cwd})`));
+      }
       console.log(chalk.gray('\n  Tracking: files, commits, AI usage'));
       console.log(chalk.gray('  End with: cs end\n'));
     }
@@ -189,13 +256,13 @@ program
   .option('-n, --notes <notes>', 'Session notes')
   .option('-s, --session <id>', 'End a specific session by ID', parseInt)
   .option('--json', 'Output JSON (for agents)')
-  .action((options) => {
+  .action(async (options) => {
     let session;
     if (options.session) {
       session = getSession(options.session);
       if (!session || session.status !== 'active') {
         if (options.json) {
-          console.log(JSON.stringify({ error: 'session_not_found', id: options.session }));
+          jsonError('session_not_found', `No active session with id ${options.session}`, { id: options.session });
         } else {
           console.log(chalk.yellow(`\nNo active session with id ${options.session}.\n`));
         }
@@ -207,7 +274,7 @@ program
 
     if (!session) {
       if (options.json) {
-        console.log(JSON.stringify({ error: 'no_active_session' }));
+        jsonError('no_active_session', 'No active session to end');
       } else {
         console.log(chalk.yellow('\nNo active session.\n'));
       }
@@ -218,6 +285,36 @@ program
     stopWatcher();
     if ((global as any).gitInterval) {
       clearInterval((global as any).gitInterval);
+    }
+
+    // Git-based scan: if we stored a start HEAD, diff against current HEAD for accurate file/commit counts
+    if (session.startGitHead) {
+      const dir = session.gitRoot || session.workingDirectory;
+      const diffFiles = await getGitDiffFiles(dir, session.startGitHead);
+      const diffCommits = await getGitLogCommits(dir, session.startGitHead);
+
+      // Record git-discovered file changes that weren't already tracked by watcher
+      for (const f of diffFiles) {
+        addFileChange({
+          sessionId: session.id!,
+          filePath: f.filePath,
+          changeType: f.changeType,
+          timestamp: new Date().toISOString(),
+        });
+      }
+      // Record git-discovered commits not already tracked by poller
+      const existing = getCommits(session.id!);
+      const existingHashes = new Set(existing.map((c) => c.hash));
+      for (const c of diffCommits) {
+        if (!existingHashes.has(c.hash)) {
+          addCommit({
+            sessionId: session.id!,
+            hash: c.hash,
+            message: c.message,
+            timestamp: c.timestamp,
+          });
+        }
+      }
     }
 
     endSession(session.id!, new Date().toISOString(), options.notes);
@@ -258,7 +355,7 @@ program
 
     if (!session) {
       if (options.json) {
-        console.log(JSON.stringify({ error: 'session_not_found' }));
+        jsonError('session_not_found', id ? `Session ${id} not found` : 'No sessions found');
       } else {
         console.log(chalk.yellow('\nSession not found.\n'));
       }
@@ -311,7 +408,7 @@ program
   .action((options) => {
     const stats = getStats();
     if (options.json) {
-      console.log(JSON.stringify({
+      console.log(JSON.stringify(jsonWrap({
         totalSessions: stats.totalSessions,
         totalTime: stats.totalTime,
         totalTimeFormatted: formatDuration(stats.totalTime),
@@ -320,7 +417,7 @@ program
         totalAICost: stats.totalAICost,
         avgSessionTime: stats.avgSessionTime,
         avgSessionFormatted: formatDuration(stats.avgSessionTime),
-      }));
+      })));
     } else {
       displayStats(stats);
     }
@@ -345,7 +442,7 @@ program
       session = getSession(options.session);
       if (!session || session.status !== 'active') {
         if (options.json) {
-          console.log(JSON.stringify({ error: 'session_not_found', id: options.session }));
+          jsonError('session_not_found', `No active session with id ${options.session}`, { id: options.session });
         } else {
           console.log(chalk.yellow(`\nNo active session with id ${options.session}.\n`));
         }
@@ -356,7 +453,7 @@ program
     }
     if (!session) {
       if (options.json) {
-        console.log(JSON.stringify({ error: 'no_active_session' }));
+        jsonError('no_active_session', 'No active session. Start one with: cs start <name>');
       } else {
         console.log(chalk.yellow('\nNo active session. Start one with: cs start <name>\n'));
       }
@@ -370,7 +467,7 @@ program
     if (totalTokens === 0) {
       const msg = 'Must provide --tokens or --prompt-tokens/--completion-tokens';
       if (options.json) {
-        console.log(JSON.stringify({ error: 'missing_tokens', message: msg }));
+        jsonError('missing_tokens', msg);
       } else {
         console.log(chalk.red(`\n✗ ${msg}\n`));
       }
@@ -378,20 +475,32 @@ program
     }
 
     let cost = options.cost;
+    let pricingInfo: { source: 'built-in' | 'custom' | 'manual'; modelKnown: boolean; inputPer1M: number; outputPer1M: number } | undefined;
+
     if (cost === undefined || cost === null) {
-      // Auto-calculate from pricing table
-      const auto = estimateCost(options.model, promptTk || totalTokens * 0.7, completionTk || totalTokens * 0.3);
+      // Auto-calculate from pricing table (try provider/model → model)
+      const auto = estimateCost(options.model, promptTk || totalTokens * 0.7, completionTk || totalTokens * 0.3, options.provider);
       if (auto !== null) {
-        cost = Math.round(auto * 1e10) / 1e10;
+        cost = Math.round(auto.cost * 1e10) / 1e10;
+        pricingInfo = auto.pricingInfo;
       } else {
         const msg = `Unknown model "${options.model}" — provide -c <cost> or use --prompt-tokens/--completion-tokens with a known model`;
         if (options.json) {
-          console.log(JSON.stringify({ error: 'unknown_model', message: msg }));
+          jsonError('unknown_model', msg, { model: options.model, provider: options.provider });
         } else {
           console.log(chalk.red(`\n✗ ${msg}\n`));
         }
         return;
       }
+    } else {
+      // Manual cost provided — check if model is known anyway for info
+      const lookup = lookupPricing(options.model, options.provider);
+      pricingInfo = {
+        source: 'manual',
+        modelKnown: lookup !== null,
+        inputPer1M: lookup?.entry.input || 0,
+        outputPer1M: lookup?.entry.output || 0,
+      };
     }
 
     addAIUsage({
@@ -408,10 +517,11 @@ program
     // Re-read the updated session
     const updated = getSession(session.id!);
     if (options.json) {
-      console.log(JSON.stringify({
+      console.log(JSON.stringify(jsonWrap({
         logged: { provider: options.provider, model: options.model, tokens: totalTokens, promptTokens: promptTk || undefined, completionTokens: completionTk || undefined, cost },
+        pricing: pricingInfo,
         session: { id: session.id, aiCost: updated?.aiCost || 0, aiTokens: updated?.aiTokens || 0 },
-      }));
+      })));
     } else {
       console.log(chalk.green(`\n✓ Logged: ${totalTokens.toLocaleString()} tokens, ${formatCost(cost)}`));
       console.log(chalk.gray(`  Session total: ${(updated?.aiTokens || 0).toLocaleString()} tokens, ${formatCost(updated?.aiCost || 0)}\n`));
@@ -434,7 +544,7 @@ program
     }
     if (!session) {
       if (options.json) {
-        console.log(JSON.stringify({ error: 'no_active_session' }));
+        jsonError('no_active_session', 'No active session');
       } else {
         console.log(chalk.yellow('\nNo active session.\n'));
       }
@@ -485,7 +595,7 @@ pricingCmd
   .action((options) => {
     const pricing = loadPricing();
     if (options.json) {
-      console.log(JSON.stringify(pricing, null, 2));
+      console.log(JSON.stringify(jsonWrap({ models: pricing })));
     } else {
       console.log(chalk.bold('\nModel Pricing (per 1M tokens)\n'));
       const sorted = Object.entries(pricing).sort(([a], [b]) => a.localeCompare(b));
@@ -499,15 +609,17 @@ pricingCmd
 pricingCmd
   .command('set <model> <input> <output>')
   .description('Set pricing for a model (per 1M tokens)')
-  .action((model: string, input: string, output: string) => {
+  .option('--provider <provider>', 'Provider name (stored as provider/model key)')
+  .action((model: string, input: string, output: string, opts: any) => {
     const inp = parseFloat(input);
     const out = parseFloat(output);
     if (isNaN(inp) || isNaN(out)) {
       console.log(chalk.red('\n✗ Input and output must be numbers (dollars per 1M tokens)\n'));
       return;
     }
-    setPricing(model, inp, out);
-    console.log(chalk.green(`\n✓ ${model}: input=$${inp}/1M, output=$${out}/1M`));
+    const key = opts.provider ? `${opts.provider}/${model}` : model;
+    setPricing(key, inp, out);
+    console.log(chalk.green(`\n✓ ${key}: input=$${inp}/1M, output=$${out}/1M`));
     console.log(chalk.gray(`  Saved to ${getPricingPath()}\n`));
   });
 
@@ -533,7 +645,7 @@ program
       session = getSession(options.session);
       if (!session || session.status !== 'active') {
         if (options.json) {
-          console.log(JSON.stringify({ error: 'session_not_found', id: options.session }));
+          jsonError('session_not_found', `No active session with id ${options.session}`, { id: options.session });
         } else {
           console.log(chalk.yellow(`\nNo active session with id ${options.session}.\n`));
         }
@@ -544,7 +656,7 @@ program
     }
     if (!session) {
       if (options.json) {
-        console.log(JSON.stringify({ error: 'no_active_session' }));
+        jsonError('no_active_session', 'No active session');
       } else {
         console.log(chalk.yellow('\nNo active session.\n'));
       }
@@ -553,7 +665,7 @@ program
 
     const note = addNote(session.id!, message);
     if (options.json) {
-      console.log(JSON.stringify(note));
+      console.log(JSON.stringify(jsonWrap(note)));
     } else {
       console.log(chalk.green(`\n✓ Note added to session ${session.id}: "${message}"\n`));
     }
@@ -569,7 +681,7 @@ program
   .action((options) => {
     const recovered = recoverStaleSessions(options.maxAge);
     if (options.json) {
-      console.log(JSON.stringify({ recovered: recovered.length, sessions: recovered.map((s) => ({ id: s.id, name: s.name, startTime: s.startTime })) }));
+      console.log(JSON.stringify(jsonWrap({ recovered: recovered.length, sessions: recovered.map((s) => ({ id: s.id, name: s.name, startTime: s.startTime })) })));
     } else {
       if (recovered.length === 0) {
         console.log(chalk.gray(`\nNo stale sessions found (older than ${options.maxAge}h).\n`));
@@ -590,7 +702,7 @@ if (require.main === module) {
 
 // Programmatic API exports
 export { createSession, getActiveSession, getActiveSessions, getActiveSessionForDir, endSession, getSession, getSessions, getStats, addFileChange, addCommit, addAIUsage, getFileChanges, getCommits, getAIUsage, exportSessions, loadPricing, setPricing, resetPricing, getPricingPath, addNote, getNotes, recoverStaleSessions } from './db';
-export { initGit, checkForNewCommits, getGitInfo } from './git';
+export { initGit, checkForNewCommits, getGitInfo, getGitRoot, getGitHead, getGitDiffFiles, getGitLogCommits } from './git';
 export { startWatcher, stopWatcher } from './watcher';
 export { Session, FileChange, Commit, AIUsage, SessionStats, SessionNote } from './types';
 export { AgentSession, AgentSessionConfig, AgentSessionSummary, BudgetExceededError, runAgentSession } from './agents';

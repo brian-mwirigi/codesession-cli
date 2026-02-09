@@ -8,17 +8,29 @@ import { Session, FileChange, Commit, AIUsage, SessionStats, SessionNote } from 
 const NEW_DB_DIR = join(homedir(), '.codesession');
 const LEGACY_DB_DIR = join(homedir(), '.devsession');
 
-// Auto-migrate: if legacy dir exists but new doesn't, copy DB over
+// Auto-migrate: if legacy dir exists but new doesn't, copy DB over (atomic-ish: copy → verify → use)
 if (existsSync(LEGACY_DB_DIR) && !existsSync(NEW_DB_DIR)) {
   mkdirSync(NEW_DB_DIR, { recursive: true });
   const legacyDb = join(LEGACY_DB_DIR, 'sessions.db');
+  const newDb = join(NEW_DB_DIR, 'sessions.db');
   if (existsSync(legacyDb)) {
-    copyFileSync(legacyDb, join(NEW_DB_DIR, 'sessions.db'));
+    copyFileSync(legacyDb, newDb);
+    // Verify the copied DB opens correctly
+    try {
+      const testDb = new Database(newDb);
+      testDb.pragma('integrity_check');
+      testDb.close();
+    } catch (_) {
+      // Corrupted copy — remove and start fresh
+      try { require('fs').unlinkSync(newDb); } catch (_) {}
+    }
     // Also copy pricing.json if present
     const legacyPricing = join(LEGACY_DB_DIR, 'pricing.json');
     if (existsSync(legacyPricing)) {
       copyFileSync(legacyPricing, join(NEW_DB_DIR, 'pricing.json'));
     }
+    // Inform user (stderr so it doesn't break --json stdout)
+    process.stderr.write(`[codesession] Migrated data from ${LEGACY_DB_DIR} → ${NEW_DB_DIR} (old files preserved — delete manually if desired)\n`);
   }
 }
 
@@ -44,6 +56,8 @@ db.exec(`
     end_time TEXT,
     duration INTEGER,
     working_directory TEXT NOT NULL,
+    git_root TEXT,
+    start_git_head TEXT,
     files_changed INTEGER DEFAULT 0,
     commits INTEGER DEFAULT 0,
     ai_cost REAL DEFAULT 0,
@@ -98,6 +112,14 @@ try {
   db.exec('ALTER TABLE ai_usage ADD COLUMN completion_tokens INTEGER');
 } catch (_) { /* column already exists */ }
 
+// Migration: add git_root and start_git_head columns if missing
+try {
+  db.exec('ALTER TABLE sessions ADD COLUMN git_root TEXT');
+} catch (_) { /* column already exists */ }
+try {
+  db.exec('ALTER TABLE sessions ADD COLUMN start_git_head TEXT');
+} catch (_) { /* column already exists */ }
+
 db.exec(`
   CREATE TABLE IF NOT EXISTS session_notes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -110,10 +132,10 @@ db.exec(`
 
 export function createSession(session: Omit<Session, 'id'>): number {
   const stmt = db.prepare(`
-    INSERT INTO sessions (name, start_time, working_directory, status)
-    VALUES (?, ?, ?, ?)
+    INSERT INTO sessions (name, start_time, working_directory, git_root, start_git_head, status)
+    VALUES (?, ?, ?, ?, ?, ?)
   `);
-  const result = stmt.run(session.name, session.startTime, session.workingDirectory, 'active');
+  const result = stmt.run(session.name, session.startTime, session.workingDirectory, session.gitRoot || null, session.startGitHead || null, 'active');
   return result.lastInsertRowid as number;
 }
 
@@ -131,8 +153,9 @@ export function getActiveSessions(): Session[] {
 }
 
 export function getActiveSessionForDir(dir: string): Session | null {
-  const stmt = db.prepare('SELECT * FROM sessions WHERE status = ? AND working_directory = ? ORDER BY id DESC LIMIT 1');
-  const row = stmt.get('active', dir) as any;
+  // Check both working_directory and git_root for matches
+  const stmt = db.prepare('SELECT * FROM sessions WHERE status = ? AND (working_directory = ? OR git_root = ?) ORDER BY id DESC LIMIT 1');
+  const row = stmt.get('active', dir, dir) as any;
   if (!row) return null;
   return mapSession(row);
 }
@@ -309,6 +332,8 @@ function mapSession(row: any): Session {
     endTime: row.end_time,
     duration: row.duration,
     workingDirectory: row.working_directory,
+    gitRoot: row.git_root || undefined,
+    startGitHead: row.start_git_head || undefined,
     filesChanged: row.files_changed,
     commits: row.commits,
     aiCost: Math.round((row.ai_cost || 0) * 1e10) / 1e10,

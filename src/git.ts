@@ -42,3 +42,70 @@ export async function getGitInfo(): Promise<{ branch: string; hasChanges: boolea
     return null;
   }
 }
+
+/**
+ * Get the root directory of the current git repository.
+ */
+export async function getGitRoot(cwd: string): Promise<string | null> {
+  try {
+    const g = simpleGit(cwd);
+    const root = await g.revparse(['--show-toplevel']);
+    return root.trim();
+  } catch (_) {
+    return null;
+  }
+}
+
+/**
+ * Get the current HEAD SHA (full hash).
+ */
+export async function getGitHead(cwd: string): Promise<string | null> {
+  try {
+    const g = simpleGit(cwd);
+    const head = await g.revparse(['HEAD']);
+    return head.trim();
+  } catch (_) {
+    return null;
+  }
+}
+
+/**
+ * Get files changed between a start SHA and HEAD via `git diff --name-status`.
+ * Returns an array of { filePath, changeType }.
+ */
+export async function getGitDiffFiles(cwd: string, fromHead: string): Promise<{ filePath: string; changeType: 'created' | 'modified' | 'deleted' }[]> {
+  try {
+    const g = simpleGit(cwd);
+    const diff = await g.diff(['--name-status', `${fromHead}..HEAD`]);
+    if (!diff.trim()) return [];
+    return diff.trim().split('\n').map((line) => {
+      const [status, ...pathParts] = line.split('\t');
+      const filePath = pathParts.join('\t');
+      let changeType: 'created' | 'modified' | 'deleted' = 'modified';
+      if (status.startsWith('A')) changeType = 'created';
+      else if (status.startsWith('D')) changeType = 'deleted';
+      else if (status.startsWith('R')) changeType = 'modified'; // rename
+      return { filePath, changeType };
+    });
+  } catch (_) {
+    return [];
+  }
+}
+
+/**
+ * Get commits between a start SHA and HEAD via `git log`.
+ * Returns array of { hash, message, timestamp }.
+ */
+export async function getGitLogCommits(cwd: string, fromHead: string): Promise<{ hash: string; message: string; timestamp: string }[]> {
+  try {
+    const g = simpleGit(cwd);
+    const log = await g.log({ from: fromHead, to: 'HEAD' });
+    return log.all.map((entry) => ({
+      hash: entry.hash.substring(0, 7),
+      message: entry.message,
+      timestamp: entry.date || new Date().toISOString(),
+    }));
+  } catch (_) {
+    return [];
+  }
+}

@@ -5,6 +5,8 @@ export interface Session {
   endTime?: string;
   duration?: number; // in seconds
   workingDirectory: string;
+  gitRoot?: string;
+  startGitHead?: string;
   filesChanged: number;
   commits: number;
   aiCost: number;

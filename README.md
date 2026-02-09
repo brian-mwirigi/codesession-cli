@@ -232,7 +232,8 @@ console.log(`Done: ${summary.filesChanged} files, $${summary.aiCost}`);
 | `cs recover [--max-age hours]` | Auto-end stale sessions older than N hours |
 | `cs export [--format json\|csv] [--limit n]` | Export sessions as JSON or CSV |
 | `cs pricing list` | Show all model prices (built-in + custom) |
-| `cs pricing set <model> <input> <output>` | Set custom pricing per 1M tokens |
+| `cs pricing set <model> <in> <out>` | Set custom pricing per 1M tokens |
+| `cs pricing set --provider <p> <model> <in> <out>` | Set pricing namespaced by provider |
 | `cs pricing reset` | Remove custom overrides, revert to defaults |
 
 All commands support `--json` for machine-readable output.
@@ -297,7 +298,7 @@ All data stored locally in `~/.codesession/sessions.db` (SQLite with WAL mode fo
 
 No telemetry. No cloud. 100% local.
 
-> **Migration:** If upgrading from v1.3.x, your data is auto-migrated from `~/.devsession/` to `~/.codesession/` on first run.
+> **Migration from v1.3.x:** Data is auto-migrated from `~/.devsession/` to `~/.codesession/` on first run. The migration **copies** files — it does **not** delete the old directory. If both directories exist, `~/.codesession/` wins (the old one is ignored). After confirming everything works, you can safely delete `~/.devsession/` manually. The migration message is printed to stderr so it doesn't break `--json` stdout.
 
 ## How tracking works
 
@@ -307,7 +308,15 @@ No telemetry. No cloud. 100% local.
 
 **AI usage** — Explicitly logged via `cs log-ai` (CLI) or `session.logAI()` (API). No API call interception — you report what you used, and codesession records it.
 
-> **Note:** In `--json` mode (typical for agents), the file watcher and commit poller are *not* started — agents call `cs log-ai` and `cs end` as discrete commands, so file/commit counts reflect what the agent explicitly logged or what was committed between start/end.
+> **Note:** In `--json` mode (typical for agents), the file watcher and commit poller are *not* started — agents call `cs log-ai` and `cs end` as discrete commands. However, on `cs end`, if `startGitHead` was captured at session start, codesession runs `git diff --name-status <startHead>..HEAD` and `git log <startHead>..HEAD` to backfill accurate file and commit counts — even in agent mode.
+
+## Session scoping: git root
+
+Sessions are scoped by **git root**, not by the exact directory you ran `cs start` from. If you run `cs start` from `repo/apps/web`, the session's working directory is resolved to the git repository root (e.g. `repo/`). This prevents accidental session fragmentation when agents or humans run from different subdirectories of the same repo.
+
+If you're not in a git repo, the exact cwd is used as-is.
+
+`cs status --json` includes a `gitRoot` field so you can see the resolved scope.
 
 ## Configurable pricing
 
@@ -325,6 +334,16 @@ cs pricing reset
 ```
 
 Custom pricing is stored in `~/.codesession/pricing.json` and merged with built-in defaults.
+
+Model names can collide across providers. Use `--provider` to namespace:
+
+```bash
+cs pricing set gpt-4o 2.50 10.00 --provider openai
+cs pricing set gpt-4o 3.00 12.00 --provider azure
+# Stored as "openai/gpt-4o" and "azure/gpt-4o"
+```
+
+`cs log-ai` checks `provider/model` first, then falls back to plain `model`.
 
 ## Example Output
 
@@ -386,6 +405,8 @@ Session: Build user auth
 }
 ```
 
+> All `--json` responses include `schemaVersion` (currently `1`) and `codesessionVersion` (e.g. `"1.5.0"`) at the top level.
+
 ## License
 
 MIT
@@ -394,19 +415,52 @@ MIT
 
 If you're building an agent framework integration (OpenClaw, Claude Code, custom), here's the contract:
 
+### Schema versioning
+
+All `--json` outputs include metadata fields for forward compatibility:
+
+```json
+{
+  "schemaVersion": 1,
+  "codesessionVersion": "1.5.0",
+  ...
+}
+```
+
+Check `schemaVersion` before parsing. If it's higher than what you expect, your integration should warn or degrade gracefully — never silently break.
+
 ### Exit codes
 
 | Code | Meaning |
 |------|---------------------------|
 | `0` | Success |
-| `1` | Error (parse `stderr` or `--json` output for `error` field) |
+| `1` | Error (always — including `--json` mode) |
+
+All errors exit `1`, even in `--json` mode. No ambiguity.
+
+### Structured error shape
+
+JSON errors always follow this shape:
+
+```json
+{
+  "schemaVersion": 1,
+  "codesessionVersion": "1.5.0",
+  "error": {
+    "code": "no_active_session",
+    "message": "No active session"
+  }
+}
+```
+
+Error codes: `session_active`, `no_active_session`, `session_not_found`, `missing_tokens`, `unknown_model`. Parse `error.code` — never string-compare `error.message`.
 
 ### Non-interactive guarantees
 
 - All commands with `--json` are fully non-interactive (no prompts, no TTY input)
 - `cs start` with `--json` calls `process.exit(0)` — safe for `execSync`
-- `cs start` when a session is already active returns `{"error": "session_active", ...}` (exit 0, not 1) — check the `error` field
-- Use `--close-stale` or `--resume` to avoid "session_active" errors in automation
+- Use `--close-stale` or `--resume` to avoid `session_active` errors in automation
+- On **Windows**: `where cs` instead of `which cs` for install detection; all commands work identically on Windows/macOS/Linux
 
 ### `cs status --json` contract
 
@@ -414,9 +468,12 @@ Always returns these fields when a session is active:
 
 ```json
 {
+  "schemaVersion": 1,
+  "codesessionVersion": "1.5.0",
   "id": 42,
   "name": "...",
   "status": "active",
+  "gitRoot": "/home/user/project",
   "aiCost": 1.23,
   "aiTokens": 45000,
   "liveDuration": 847,
@@ -424,7 +481,24 @@ Always returns these fields when a session is active:
 }
 ```
 
-When no session: `{"error": "no_active_session"}`
+When no session: `{"schemaVersion":1,"error":{"code":"no_active_session","message":"No active session"}}` (exit code 1)
+
+### Pricing source transparency
+
+`cs log-ai --json` returns a `pricing` object so you can debug cost calculations:
+
+```json
+{
+  "pricing": {
+    "source": "built-in",
+    "modelKnown": true,
+    "inputPer1M": 3.0,
+    "outputPer1M": 15.0
+  }
+}
+```
+
+`source` is `"built-in"` | `"custom"` | `"manual"`. If `modelKnown` is `false`, the agent should provide `-c <cost>` explicitly.
 
 ### Failsafe: `cs` not installed
 
