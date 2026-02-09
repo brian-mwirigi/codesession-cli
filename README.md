@@ -95,23 +95,23 @@ cs log-ai -p openai -m gpt-4o --prompt-tokens 3000 --completion-tokens 2000 --js
 
 ## OpenClaw Skill
 
-codesession-cli ships as an [OpenClaw](https://openclaw.ai) skill. The agent automatically tracks its own session costs.
-
-### Install the skill
+codesession-cli ships as an [OpenClaw](https://openclaw.ai) skill. Three commands to get started:
 
 ```bash
-# One command via ClawHub (recommended)
-clawhub install codesession
+npm install -g codesession-cli   # 1. Install the CLI
+clawhub install codesession      # 2. Install the skill
+# 3. Start a new OpenClaw session — the agent picks it up automatically
 ```
 
-Or manually:
+> **Full walkthrough with example transcript:** [docs/integrations/openclaw.md](docs/integrations/openclaw.md)
+
+<details>
+<summary>Manual install (without ClawHub)</summary>
 
 ```bash
-# Copy from npm package
 cp -r $(npm root -g)/codesession-cli/skills/codesession ~/.openclaw/skills/
 ```
-
-> See [docs/integrations/openclaw.md](docs/integrations/openclaw.md) for a full setup + example transcript.
+</details>
 
 ### What it does
 

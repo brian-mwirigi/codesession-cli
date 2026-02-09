@@ -1,29 +1,14 @@
-# OpenClaw Integration
+# OpenClaw + codesession-cli  —  1-minute setup
 
-## Setup
-
-```bash
-# 1. Install codesession-cli
-npm install -g codesession-cli
-
-# 2. Install the skill via ClawHub (recommended)
-clawhub install codesession
-```
-
-Or copy manually:
+## Install (3 commands)
 
 ```bash
-cp -r $(npm root -g)/codesession-cli/skills/codesession ~/.openclaw/skills/
+npm install -g codesession-cli   # CLI
+clawhub install codesession      # Skill
+cs --version                     # Should print 1.5.0
 ```
 
-Verify:
-
-```bash
-cs --version
-# 1.5.0
-```
-
-That's it. The agent will pick up the skill automatically on next run.
+Start a new OpenClaw session. Done — the agent tracks costs automatically.
 
 ## Example Transcript
 
