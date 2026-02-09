@@ -45,6 +45,21 @@ cs end
 
 ## Installation
 
+### Prerequisites
+
+codesession-cli uses an embedded SQLite database ([better-sqlite3](https://github.com/WiseLibs/better-sqlite3)) which requires C/C++ build tools to compile:
+
+| OS | Install build tools |
+|---|---|
+| **Ubuntu/Debian** | `sudo apt-get install -y build-essential python3` |
+| **macOS** | `xcode-select --install` |
+| **Windows** | `npm install -g windows-build-tools` or install [Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) |
+| **Alpine** | `apk add build-base python3` |
+
+> **Note:** If prebuilt binaries are available for your platform, compilation is skipped automatically.
+
+### Install
+
 ```bash
 npm install -g codesession-cli
 ```

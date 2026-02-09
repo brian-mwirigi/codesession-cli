@@ -20,7 +20,16 @@ clawhub install codesession
 
 After installing, the `cs` command is available globally. The OpenClaw agent will automatically use it to track sessions.
 
-> **Requirements:** Node.js 18+. No other dependencies needed — codesession uses an embedded SQLite database stored at `~/.codesession/sessions.db`.
+> **Requirements:** Node.js 18+ and C/C++ build tools (needed to compile the embedded SQLite module).
+>
+> | OS | Install build tools |
+> |---|---|
+> | **Ubuntu/Debian** | `sudo apt-get install -y build-essential python3` |
+> | **macOS** | `xcode-select --install` |
+> | **Windows** | `npm install -g windows-build-tools` or install Visual Studio Build Tools |
+> | **Alpine** | `apk add build-base python3` |
+>
+> Data is stored locally at `~/.codesession/sessions.db`.
 
 ## When to use
 
