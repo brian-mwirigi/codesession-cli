@@ -1,26 +1,7 @@
 ---
 name: codesession
 description: Track agent session costs, file changes, and git commits with codesession-cli. Enforces budget limits and provides detailed session analytics.
-user-invocable: true
-metadata:
-  {
-    "openclaw":
-      {
-        "emoji": "📊",
-        "homepage": "https://github.com/brian-mwirigi/codesession-cli",
-        "requires": { "bins": ["cs"] },
-        "install":
-          [
-            {
-              "id": "npm",
-              "kind": "node",
-              "package": "codesession-cli",
-              "bins": ["cs"],
-              "label": "Install codesession-cli (npm)"
-            }
-          ]
-      }
-  }
+metadata: {"openclaw": {"emoji": "📊", "homepage": "https://github.com/brian-mwirigi/codesession-cli", "requires": {"bins": ["cs"]}, "install": [{"id": "npm", "kind": "node", "package": "codesession-cli", "bins": ["cs"], "label": "Install codesession-cli (npm)"}]}}
 ---
 
 # Session Cost Tracking (codesession-cli)
