@@ -167,6 +167,21 @@ If the user has set a budget or you detect high spending:
 - On errors in `--json` mode, exit code is always `1` and the response has `{ "error": { "code": "...", "message": "..." } }`
 - Check `schemaVersion` in JSON responses to detect breaking changes
 
+## Update check
+
+Periodically check if the CLI is up to date (e.g. at session start or once per day):
+
+```bash
+# Compare installed version to latest on npm:
+cs --version          # installed version
+npm view codesession-cli version  # latest on npm
+```
+
+If the installed version is behind, notify the user:
+> "codesession-cli update available: v1.8.4 -> v1.9.0. Run `npm install -g codesession-cli` to update."
+
+Don't block the workflow for an update — just inform and continue.
+
 ## JSON output
 
 All commands support `--json` for machine-readable output. Use this when you need to parse session data programmatically.

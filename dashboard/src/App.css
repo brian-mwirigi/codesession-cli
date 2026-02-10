@@ -1167,3 +1167,99 @@ body {
     width: 100%;
   }
 }
+
+/* ── Diff Viewer ─────────────────────────────────────────── */
+
+.clickable-row {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.clickable-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.diff-toggle {
+  color: #888;
+  font-size: 0.7em;
+  margin-right: 4px;
+}
+
+.diff-cell {
+  padding: 0 !important;
+  background: #0d1117;
+}
+
+.diff-loading {
+  padding: 16px;
+  color: #888;
+  text-align: center;
+}
+
+.diff-empty {
+  padding: 16px;
+  color: #888;
+  text-align: center;
+  font-style: italic;
+}
+
+.diff-viewer {
+  max-height: 500px;
+  overflow: auto;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.diff-pre {
+  margin: 0;
+  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.diff-line {
+  display: flex;
+  padding: 0 12px;
+  min-height: 20px;
+}
+
+.diff-ln {
+  flex-shrink: 0;
+  width: 48px;
+  text-align: right;
+  padding-right: 12px;
+  color: #484f58;
+  user-select: none;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  margin-right: 12px;
+}
+
+.diff-text {
+  white-space: pre;
+  flex: 1;
+  overflow-x: auto;
+}
+
+.diff-line--add {
+  background: rgba(46, 160, 67, 0.15);
+  color: #3fb950;
+}
+.diff-line--del {
+  background: rgba(248, 81, 73, 0.15);
+  color: #f85149;
+}
+.diff-line--hunk {
+  background: rgba(56, 139, 253, 0.1);
+  color: #388bfd;
+}
+.diff-line--meta {
+  color: #8b949e;
+  font-weight: bold;
+}
+.diff-line--header {
+  color: #8b949e;
+  font-weight: bold;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 8px;
+  padding-bottom: 4px;
+}

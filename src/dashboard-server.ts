@@ -12,7 +12,9 @@ import {
   exportSessions, loadPricing,
   getProviderBreakdown, getFileHotspots, getActivityHeatmap,
   getDailyTokens, getCostVelocity, getProjectBreakdown, getTokenRatios,
+  getSession, getCommits,
 } from './db';
+import { getGitDiff, getCommitDiff } from './git';
 
 interface DashboardOptions {
   port?: number;
@@ -116,6 +118,45 @@ function buildApiRouter(): Router {
       const detail = getSessionDetail(id);
       if (!detail) return res.status(404).json({ error: 'Session not found' });
       res.json(detail);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ── Diff endpoints ───────────────────────────────────────
+
+  // Session diff (all files or single file)
+  router.get('/sessions/:id/diff', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const session = getSession(id);
+      if (!session) return res.status(404).json({ error: 'Session not found' });
+      if (!session.gitRoot || !session.startGitHead) {
+        return res.status(400).json({ error: 'No git info for this session (no git root or start HEAD)' });
+      }
+
+      const filePath = req.query.file as string | undefined;
+      const commits = getCommits(id);
+      const toSha = session.status === 'active' ? null : (commits.length > 0 ? commits[commits.length - 1].hash : null);
+
+      const diff = await getGitDiff(session.gitRoot, session.startGitHead, toSha, filePath || undefined);
+      res.type('text/plain').send(diff || '(no changes)');
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // Single commit diff
+  router.get('/sessions/:id/commits/:hash/diff', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const session = getSession(id);
+      if (!session) return res.status(404).json({ error: 'Session not found' });
+      if (!session.gitRoot) return res.status(400).json({ error: 'No git root for this session' });
+
+      const filePath = req.query.file as string | undefined;
+      const diff = await getCommitDiff(session.gitRoot, req.params.hash, filePath || undefined);
+      res.type('text/plain').send(diff || '(no changes)');
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }

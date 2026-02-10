@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
-import { fetchApi } from '../api';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { fetchApi, fetchDiff, fetchCommitDiff } from '../api';
 import { formatCost, formatDuration, formatDate, formatTokens } from '../utils/format';
 import { IconArrowLeft, IconFolder, IconCalendar, IconToken, IconDollar, IconHash, IconClock, IconGitBranch } from './Icons';
 
@@ -181,8 +181,8 @@ export default function SessionDetail({ sessionId, onBack }: Props) {
       <div className="card">
         <div className="card-body--flush">
           {tab === 'timeline' && <TimelineView entries={timeline} />}
-          {tab === 'files' && <FilesTable files={data.files || []} />}
-          {tab === 'commits' && <CommitsTable commits={data.commits || []} />}
+          {tab === 'files' && <FilesTable files={data.files || []} sessionId={sessionId} />}
+          {tab === 'commits' && <CommitsTable commits={data.commits || []} sessionId={sessionId} />}
           {tab === 'ai' && <AiTable usage={data.aiUsage || []} />}
           {tab === 'notes' && <NotesTable notes={data.notes || []} />}
         </div>
@@ -228,7 +228,28 @@ function TimelineView({ entries }: { entries: TimelineEntry[] }) {
   );
 }
 
-function FilesTable({ files }: { files: FileChange[] }) {
+function FilesTable({ files, sessionId }: { files: FileChange[]; sessionId: number }) {
+  const [expandedFile, setExpandedFile] = useState<string | null>(null);
+  const [diffText, setDiffText] = useState<string>('');
+  const [loading, setLoading] = useState(false);
+
+  const toggleDiff = useCallback(async (filePath: string) => {
+    if (expandedFile === filePath) {
+      setExpandedFile(null);
+      setDiffText('');
+      return;
+    }
+    setExpandedFile(filePath);
+    setLoading(true);
+    try {
+      const text = await fetchDiff(sessionId, filePath);
+      setDiffText(text);
+    } catch {
+      setDiffText('(failed to load diff)');
+    }
+    setLoading(false);
+  }, [expandedFile, sessionId]);
+
   if (files.length === 0) return <div className="empty-state">No file changes recorded</div>;
   return (
     <table className="tbl">
@@ -241,18 +262,51 @@ function FilesTable({ files }: { files: FileChange[] }) {
       </thead>
       <tbody>
         {files.map((f, i) => (
-          <tr key={i}>
-            <td className="mono ellipsis" title={f.filePath}>{f.filePath}</td>
-            <td><span className={`badge badge-file-${f.changeType}`}>{f.changeType}</span></td>
-            <td className="r mono">{formatDate(f.timestamp)}</td>
-          </tr>
+          <>
+            <tr key={i} className="clickable-row" onClick={() => toggleDiff(f.filePath)} title="Click to view diff">
+              <td className="mono ellipsis" title={f.filePath}>
+                <span className="diff-toggle">{expandedFile === f.filePath ? '\u25BC' : '\u25B6'}</span>
+                {' '}{f.filePath}
+              </td>
+              <td><span className={`badge badge-file-${f.changeType}`}>{f.changeType}</span></td>
+              <td className="r mono">{formatDate(f.timestamp)}</td>
+            </tr>
+            {expandedFile === f.filePath && (
+              <tr key={`diff-${i}`}>
+                <td colSpan={3} className="diff-cell">
+                  {loading ? <div className="diff-loading">Loading diff...</div> : <DiffView diff={diffText} />}
+                </td>
+              </tr>
+            )}
+          </>
         ))}
       </tbody>
     </table>
   );
 }
 
-function CommitsTable({ commits }: { commits: Commit[] }) {
+function CommitsTable({ commits, sessionId }: { commits: Commit[]; sessionId: number }) {
+  const [expandedHash, setExpandedHash] = useState<string | null>(null);
+  const [diffText, setDiffText] = useState<string>('');
+  const [loading, setLoading] = useState(false);
+
+  const toggleDiff = useCallback(async (hash: string) => {
+    if (expandedHash === hash) {
+      setExpandedHash(null);
+      setDiffText('');
+      return;
+    }
+    setExpandedHash(hash);
+    setLoading(true);
+    try {
+      const text = await fetchCommitDiff(sessionId, hash);
+      setDiffText(text);
+    } catch {
+      setDiffText('(failed to load diff)');
+    }
+    setLoading(false);
+  }, [expandedHash, sessionId]);
+
   if (commits.length === 0) return <div className="empty-state">No commits recorded</div>;
   return (
     <table className="tbl">
@@ -265,11 +319,23 @@ function CommitsTable({ commits }: { commits: Commit[] }) {
       </thead>
       <tbody>
         {commits.map((c, i) => (
-          <tr key={i}>
-            <td className="mono hash">{c.hash.slice(0, 7)}</td>
-            <td className="ellipsis" title={c.message}>{c.message}</td>
-            <td className="r mono">{formatDate(c.timestamp)}</td>
-          </tr>
+          <>
+            <tr key={i} className="clickable-row" onClick={() => toggleDiff(c.hash)} title="Click to view diff">
+              <td className="mono hash">
+                <span className="diff-toggle">{expandedHash === c.hash ? '\u25BC' : '\u25B6'}</span>
+                {' '}{c.hash.slice(0, 7)}
+              </td>
+              <td className="ellipsis" title={c.message}>{c.message}</td>
+              <td className="r mono">{formatDate(c.timestamp)}</td>
+            </tr>
+            {expandedHash === c.hash && (
+              <tr key={`diff-${i}`}>
+                <td colSpan={3} className="diff-cell">
+                  {loading ? <div className="diff-loading">Loading diff...</div> : <DiffView diff={diffText} />}
+                </td>
+              </tr>
+            )}
+          </>
         ))}
       </tbody>
     </table>
@@ -318,6 +384,36 @@ function NotesTable({ notes }: { notes: Note[] }) {
           <div className="note-text">{n.message}</div>
         </div>
       ))}
+    </div>
+  );
+}
+
+function DiffView({ diff }: { diff: string }) {
+  if (!diff || diff === '(no changes)' || diff === '(failed to load diff)') {
+    return <div className="diff-empty">{diff || '(no changes)'}</div>;
+  }
+
+  const lines = diff.split('\n');
+
+  return (
+    <div className="diff-viewer">
+      <pre className="diff-pre">
+        {lines.map((line, i) => {
+          let cls = 'diff-line';
+          if (line.startsWith('+++') || line.startsWith('---')) cls += ' diff-line--meta';
+          else if (line.startsWith('@@')) cls += ' diff-line--hunk';
+          else if (line.startsWith('+')) cls += ' diff-line--add';
+          else if (line.startsWith('-')) cls += ' diff-line--del';
+          else if (line.startsWith('diff ')) cls += ' diff-line--header';
+
+          return (
+            <div key={i} className={cls}>
+              <span className="diff-ln">{i + 1}</span>
+              <span className="diff-text">{line}</span>
+            </div>
+          );
+        })}
+      </pre>
     </div>
   );
 }

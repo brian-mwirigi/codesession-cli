@@ -109,3 +109,40 @@ export async function getGitLogCommits(cwd: string, fromHead: string): Promise<{
     return [];
   }
 }
+
+/**
+ * Get unified diff between two SHAs (or SHA..HEAD).
+ * If filePath is provided, returns diff for that file only.
+ */
+export async function getGitDiff(
+  cwd: string,
+  fromSha: string,
+  toSha: string | null,
+  filePath?: string,
+): Promise<string> {
+  try {
+    const g = simpleGit(cwd);
+    const range = toSha ? `${fromSha}..${toSha}` : `${fromSha}..HEAD`;
+    const args = ['diff', '--unified=5', range];
+    if (filePath) args.push('--', filePath);
+    const result = await g.raw(args);
+    return result;
+  } catch (_) {
+    return '';
+  }
+}
+
+/**
+ * Get diff for a single commit.
+ */
+export async function getCommitDiff(cwd: string, hash: string, filePath?: string): Promise<string> {
+  try {
+    const g = simpleGit(cwd);
+    const args = ['diff', '--unified=5', `${hash}~1`, hash];
+    if (filePath) args.push('--', filePath);
+    const result = await g.raw(args);
+    return result;
+  } catch (_) {
+    return '';
+  }
+}
