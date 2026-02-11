@@ -27,7 +27,9 @@
     "dev": "tsx src/index.ts",
     "dev:dashboard": "npx vite --config dashboard/vite.config.ts",
     "start": "node dist/index.js",
-    "prepare": "npm run build"
+    "prepare": "npm run build",
+    "screenshots": "node scripts/capture-screenshots.js",
+    "screenshots:setup": "bash scripts/setup-demo-data.sh || scripts\\setup-demo-data.bat"
   },
   "keywords": [
     "ai",
@@ -70,6 +72,7 @@
     "@types/react": "^19.2.13",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.3",
+    "puppeteer": "^22.0.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "recharts": "^3.7.0",
