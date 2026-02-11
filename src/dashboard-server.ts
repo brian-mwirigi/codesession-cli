@@ -350,8 +350,10 @@ export function startDashboard(options: DashboardOptions = {}): void {
   }));
 
   // index.html and other root files: no-cache (always fresh after upgrades)
+  // index: false prevents serving raw index.html (SPA fallback serves injected version)
   app.use(express.static(staticDir, {
     maxAge: 0,
+    index: false,
     setHeaders: (res, filePath) => {
       if (filePath.endsWith('.html')) {
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -374,11 +376,11 @@ export function startDashboard(options: DashboardOptions = {}): void {
 
   // ── SPA fallback ─────────────────────────────────────────
 
-  // Read index.html once; inject token if needed
+  // Read index.html once; inject token via <meta> tag (avoids CSP script-src issues)
   const indexPath = join(staticDir, 'index.html');
   const rawHtml = readFileSync(indexPath, 'utf-8');
   const servedHtml = token
-    ? rawHtml.replace('</head>', `<script>window.__CS_TOKEN=${JSON.stringify(token)};</script>\n</head>`)
+    ? rawHtml.replace('</head>', `<meta name="cs-token" content="${token}">\n</head>`)
     : rawHtml;
 
   app.use((_req: Request, res: Response) => {

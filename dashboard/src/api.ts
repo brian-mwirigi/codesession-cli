@@ -1,8 +1,9 @@
 const API_BASE = '/api/v1';
 
-// Read session token from server-injected global or URL query param
+// Read session token from server-injected <meta> tag, window global (legacy), or URL query param
 function getToken(): string | null {
-  return (window as any).__CS_TOKEN
+  return document.querySelector('meta[name="cs-token"]')?.getAttribute('content')
+    || (window as any).__CS_TOKEN
     || new URLSearchParams(window.location.search).get('token')
     || null;
 }
@@ -30,8 +31,13 @@ export async function fetchDiff(sessionId: number, filePath?: string): Promise<s
   if (filePath) params.set('file', filePath);
   if (token) params.set('token', token);
   const url = `${window.location.origin}/api/v1/sessions/${sessionId}/diff?${params}`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Diff API ${res.status}`);
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(url, { headers });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(body || `Diff API ${res.status}`);
+  }
   return res.text();
 }
 
@@ -41,7 +47,12 @@ export async function fetchCommitDiff(sessionId: number, hash: string, filePath?
   if (filePath) params.set('file', filePath);
   if (token) params.set('token', token);
   const url = `${window.location.origin}/api/v1/sessions/${sessionId}/commits/${hash}/diff?${params}`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Diff API ${res.status}`);
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(url, { headers });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(body || `Diff API ${res.status}`);
+  }
   return res.text();
 }

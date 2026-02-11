@@ -244,8 +244,8 @@ function FilesTable({ files, sessionId }: { files: FileChange[]; sessionId: numb
     try {
       const text = await fetchDiff(sessionId, filePath);
       setDiffText(text);
-    } catch {
-      setDiffText('(failed to load diff)');
+    } catch (err: any) {
+      setDiffText(`(failed to load diff: ${err.message || 'unknown error'})`);
     }
     setLoading(false);
   }, [expandedFile, sessionId]);
@@ -301,8 +301,8 @@ function CommitsTable({ commits, sessionId }: { commits: Commit[]; sessionId: nu
     try {
       const text = await fetchCommitDiff(sessionId, hash);
       setDiffText(text);
-    } catch {
-      setDiffText('(failed to load diff)');
+    } catch (err: any) {
+      setDiffText(`(failed to load diff: ${err.message || 'unknown error'})`);
     }
     setLoading(false);
   }, [expandedHash, sessionId]);
@@ -389,7 +389,7 @@ function NotesTable({ notes }: { notes: Note[] }) {
 }
 
 function DiffView({ diff }: { diff: string }) {
-  if (!diff || diff === '(no changes)' || diff === '(failed to load diff)') {
+  if (!diff || diff === '(no changes)' || diff.startsWith('(failed to load diff')) {
     return <div className="diff-empty">{diff || '(no changes)'}</div>;
   }
 
