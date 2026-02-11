@@ -449,11 +449,18 @@ export function startDashboard(options: DashboardOptions = {}): void {
     ? rawHtml.replace('</head>', `<meta name="cs-token" content="${token}">\n</head>`)
     : rawHtml;
 
-  app.use((_req: Request, res: Response) => {
+  // Serve index.html for all known SPA routes so client-side routing works on refresh.
+  // Using explicit app.get() instead of app.use() catch-all for Express 5 compatibility.
+  const sendSpa = (_req: Request, res: Response) => {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.setHeader('Content-Type', 'text/html');
     res.send(servedHtml);
-  });
+  };
+  app.get('/', sendSpa);
+  app.get('/sessions', sendSpa);
+  app.get('/sessions/:id', sendSpa);
+  app.get('/models', sendSpa);
+  app.get('/insights', sendSpa);
 
   // ── Port conflict handling & startup ──────────────────────
 
