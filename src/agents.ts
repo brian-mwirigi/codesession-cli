@@ -29,8 +29,8 @@ import {
   getCommits,
   getAIUsage,
 } from './db';
-import { initGit, checkForNewCommits } from './git';
-import { startWatcher, stopWatcher } from './watcher';
+import { initGit, startGitPolling, stopGitPolling, checkForNewCommits, cleanupGit } from './git';
+import { startWatcher, stopWatcher, cleanupWatcher } from './watcher';
 
 export interface AgentSessionConfig {
   /** Hard budget cap in dollars. Session auto-ends if exceeded. */
@@ -70,7 +70,6 @@ export class AgentSession {
   private sessionId: number | null = null;
   private name: string;
   private config: AgentSessionConfig;
-  private gitInterval: ReturnType<typeof setInterval> | null = null;
   private totalCost = 0;
   private totalTokens = 0;
   private started = false;
@@ -115,12 +114,8 @@ export class AgentSession {
 
     // Start git polling
     if (this.config.git) {
-      initGit(cwd);
-      this.gitInterval = setInterval(async () => {
-        if (this.sessionId) {
-          await checkForNewCommits(this.sessionId);
-        }
-      }, this.config.gitPollInterval);
+      initGit(this.sessionId, cwd);
+      startGitPolling(this.sessionId, this.config.gitPollInterval);
     }
 
     this.started = true;
@@ -136,6 +131,17 @@ export class AgentSession {
   logAI(provider: string, model: string, tokens: number, cost: number, options?: { promptTokens?: number; completionTokens?: number }): number | null {
     this.assertStarted();
 
+    // Check budget BEFORE writing to database
+    const newTotalCost = this.totalCost + cost;
+    if (this.config.budget !== undefined && newTotalCost > this.config.budget) {
+      if (this.config.onBudgetExceeded) {
+        this.config.onBudgetExceeded(newTotalCost, this.config.budget);
+      }
+      // Don't write this usage to DB - budget already exceeded
+      throw new BudgetExceededError(newTotalCost, this.config.budget);
+    }
+
+    // Budget check passed - safe to write to DB
     addAIUsage({
       sessionId: this.sessionId!,
       provider,
@@ -147,7 +153,7 @@ export class AgentSession {
       timestamp: new Date().toISOString(),
     });
 
-    this.totalCost += cost;
+    this.totalCost = newTotalCost;
     this.totalTokens += tokens;
 
     // Notify callback
@@ -155,13 +161,9 @@ export class AgentSession {
       this.config.onAIUsage(cost, this.totalCost, model);
     }
 
-    // Check budget
+    // Auto-end session if budget exactly met or exceeded
     if (this.config.budget !== undefined && this.totalCost >= this.config.budget) {
-      if (this.config.onBudgetExceeded) {
-        this.config.onBudgetExceeded(this.totalCost, this.config.budget);
-      }
-      this.end(`Budget exceeded: $${this.totalCost.toFixed(2)} / $${this.config.budget.toFixed(2)}`);
-      throw new BudgetExceededError(this.totalCost, this.config.budget);
+      this.end(`Budget reached: $${this.totalCost.toFixed(2)} / $${this.config.budget.toFixed(2)}`);
     }
 
     return this.config.budget !== undefined
@@ -205,11 +207,9 @@ export class AgentSession {
     this.assertStarted();
 
     // Stop tracking
-    stopWatcher();
-    if (this.gitInterval) {
-      clearInterval(this.gitInterval);
-      this.gitInterval = null;
-    }
+    stopWatcher(this.sessionId!);
+    stopGitPolling(this.sessionId!);
+    cleanupGit(this.sessionId!);
 
     const endTime = new Date().toISOString();
     dbEndSession(this.sessionId!, endTime, notes);

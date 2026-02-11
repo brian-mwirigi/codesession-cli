@@ -30,7 +30,8 @@ export async function fetchDiff(sessionId: number, filePath?: string): Promise<s
   const params = new URLSearchParams();
   if (filePath) params.set('file', filePath);
   if (token) params.set('token', token);
-  const url = `${window.location.origin}/api/v1/sessions/${sessionId}/diff?${params}`;
+  // Use relative URL to avoid mixed content issues (HTTPS page -> HTTP fetch)
+  const url = `/api/v1/sessions/${sessionId}/diff?${params}`;
   const headers: Record<string, string> = {};
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const res = await fetch(url, { headers });
@@ -46,7 +47,8 @@ export async function fetchCommitDiff(sessionId: number, hash: string, filePath?
   const params = new URLSearchParams();
   if (filePath) params.set('file', filePath);
   if (token) params.set('token', token);
-  const url = `${window.location.origin}/api/v1/sessions/${sessionId}/commits/${hash}/diff?${params}`;
+  // Use relative URL to avoid mixed content issues (HTTPS page -> HTTP fetch)
+  const url = `/api/v1/sessions/${sessionId}/commits/${hash}/diff?${params}`;
   const headers: Record<string, string> = {};
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const res = await fetch(url, { headers });

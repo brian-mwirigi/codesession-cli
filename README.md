@@ -1,15 +1,37 @@
 <div align="center">
   <h1>codesession-cli</h1>
   <p><strong>Track what your AI agents actually cost</strong></p>
-  
+
   <p>
     <a href="https://www.npmjs.com/package/codesession-cli"><img src="https://img.shields.io/npm/v/codesession-cli?color=brightgreen" alt="npm version"></a>
     <a href="https://www.npmjs.com/package/codesession-cli"><img src="https://img.shields.io/npm/dm/codesession-cli" alt="npm downloads"></a>
+    <a href="https://github.com/brian-mwirigi/codesession-cli"><img src="https://img.shields.io/github/stars/brian-mwirigi/codesession-cli?style=social" alt="GitHub stars"></a>
     <a href="https://github.com/brian-mwirigi/codesession-cli/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/codesession-cli" alt="license"></a>
   </p>
 
   <p><em>Track agent runs • Monitor files • Log commits • Enforce budgets</em></p>
+
+  <p>
+    <a href="https://www.npmjs.com/package/codesession-cli"> npm</a> •
+    <a href="https://github.com/brian-mwirigi/codesession-cli"> GitHub</a> •
+    <a href="https://github.com/brian-mwirigi/codesession-cli/blob/main/CHANGELOG.md"> Changelog</a> •
+    <a href="#openclaw-skill"> OpenClaw Skill</a>
+  </p>
 </div>
+
+---
+
+##  What's New in v1.9.0
+
+**Major Stability Release** - 13 critical bugs fixed for production-grade concurrent session support:
+
+-  **Concurrent Sessions** - Multiple agents/repos now work flawlessly (fixed 4 race conditions)
+-  **Data Integrity** - Atomic transactions prevent corruption (fixed 5 high-severity bugs)
+-  **Resource Management** - No more memory leaks or orphaned timers (fixed 4 medium bugs)
+-  **Dashboard Fixes** - HTTPS mixed content resolved, better error messages
+-  **GitHub PR-Style Diffs** - Enhanced file viewer with visual diff bars & stats
+
+[Full Changelog →](https://github.com/brian-mwirigi/codesession-cli/blob/main/CHANGELOG.md)
 
 ---
 
@@ -164,7 +186,7 @@ Options:
 
 ## OpenClaw Skill
 
-codesession-cli ships as an [OpenClaw](https://openclaw.ai) skill. Three commands to get started:
+codesession-cli ships as an [OpenClaw](https://openclaw.ai) skill. The skill is at [Codesession](https://clawhub.ai/brian-mwirigi/codesession) Three commands to get started:
 
 ```bash
 npm install -g codesession-cli   # 1. Install the CLI

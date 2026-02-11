@@ -1,21 +1,31 @@
 import { simpleGit, SimpleGit } from 'simple-git';
 import { addCommit } from './db';
 
-let git: SimpleGit;
-let lastCommitHash: string | null = null;
+// Session-scoped git instances and commit tracking
+interface GitSession {
+  git: SimpleGit;
+  lastCommitHash: string | null;
+  interval?: NodeJS.Timeout;
+}
 
-export function initGit(cwd: string): void {
-  git = simpleGit(cwd);
+const sessions = new Map<number, GitSession>();
+
+export function initGit(sessionId: number, cwd: string): void {
+  sessions.set(sessionId, {
+    git: simpleGit(cwd),
+    lastCommitHash: null,
+  });
 }
 
 export async function checkForNewCommits(sessionId: number): Promise<void> {
-  if (!git) return;
+  const session = sessions.get(sessionId);
+  if (!session) return;
 
   try {
-    const log = await git.log({ maxCount: 1 });
-    if (log.latest && log.latest.hash !== lastCommitHash) {
-      lastCommitHash = log.latest.hash;
-      
+    const log = await session.git.log({ maxCount: 1 });
+    if (log.latest && log.latest.hash !== session.lastCommitHash) {
+      session.lastCommitHash = log.latest.hash;
+
       addCommit({
         sessionId,
         hash: log.latest.hash.substring(0, 7),
@@ -28,12 +38,13 @@ export async function checkForNewCommits(sessionId: number): Promise<void> {
   }
 }
 
-export async function getGitInfo(): Promise<{ branch: string; hasChanges: boolean } | null> {
-  if (!git) return null;
+export async function getGitInfo(sessionId: number): Promise<{ branch: string; hasChanges: boolean } | null> {
+  const session = sessions.get(sessionId);
+  if (!session) return null;
 
   try {
-    const branch = await git.revparse(['--abbrev-ref', 'HEAD']);
-    const status = await git.status();
+    const branch = await session.git.revparse(['--abbrev-ref', 'HEAD']);
+    const status = await session.git.status();
     return {
       branch: branch.trim(),
       hasChanges: !status.isClean(),
@@ -41,6 +52,34 @@ export async function getGitInfo(): Promise<{ branch: string; hasChanges: boolea
   } catch (error) {
     return null;
   }
+}
+
+export function startGitPolling(sessionId: number, intervalMs: number = 10000): void {
+  const session = sessions.get(sessionId);
+  if (!session) return;
+
+  // Clear existing interval if any
+  if (session.interval) {
+    clearInterval(session.interval);
+  }
+
+  // Start new polling interval
+  session.interval = setInterval(async () => {
+    await checkForNewCommits(sessionId);
+  }, intervalMs);
+}
+
+export function stopGitPolling(sessionId: number): void {
+  const session = sessions.get(sessionId);
+  if (session?.interval) {
+    clearInterval(session.interval);
+    session.interval = undefined;
+  }
+}
+
+export function cleanupGit(sessionId: number): void {
+  stopGitPolling(sessionId);
+  sessions.delete(sessionId);
 }
 
 /**

@@ -26,8 +26,8 @@ import {
   getNotes,
   recoverStaleSessions,
 } from './db';
-import { initGit, checkForNewCommits, getGitInfo, getGitRoot, getGitHead, getGitDiffFiles, getGitLogCommits } from './git';
-import { startWatcher, stopWatcher } from './watcher';
+import { initGit, startGitPolling, stopGitPolling, checkForNewCommits, getGitInfo, cleanupGit, getGitRoot, getGitHead, getGitDiffFiles, getGitLogCommits } from './git';
+import { startWatcher, stopWatcher, cleanupWatcher } from './watcher';
 import { 
   displaySession, 
   displaySessions, 
@@ -156,8 +156,10 @@ program
       if (options.resume) {
         const forDir = getActiveSessionForDir(scopeDir);
         if (forDir) {
+          // Initialize git for the resumed session to get git info
+          initGit(forDir.id!, scopeDir);
           if (options.json) {
-            const gitInfo = await getGitInfo();
+            const gitInfo = await getGitInfo(forDir.id!);
             console.log(JSON.stringify(jsonWrap({ id: forDir.id, name: forDir.name, directory: scopeDir, branch: gitInfo?.branch || null, resumed: true })));
             process.exit(0);
           } else {
@@ -214,27 +216,22 @@ program
     });
 
     // Initialize git tracking
-    initGit(scopeDir);
-    
+    initGit(sessionId, scopeDir);
+
     // Start file watcher (only for long-running mode, not --json agent calls)
     if (!options.json) {
       startWatcher(sessionId, scopeDir);
 
-      // Check for commits every 10 seconds
-      const gitInterval = setInterval(async () => {
-        await checkForNewCommits(sessionId);
-      }, 10000);
-
-      // Store interval ID
-      (global as any).gitInterval = gitInterval;
+      // Start git commit polling (checks every 10 seconds)
+      startGitPolling(sessionId, 10000);
     }
 
     if (options.json) {
-      const gitInfo = await getGitInfo();
+      const gitInfo = await getGitInfo(sessionId);
       console.log(JSON.stringify(jsonWrap({ id: sessionId, name, directory: scopeDir, gitRoot: gitRoot || null, branch: gitInfo?.branch || null })));
       process.exit(0);
     } else {
-      const gitInfo = await getGitInfo();
+      const gitInfo = await getGitInfo(sessionId);
       console.log(chalk.green(`\nSession started: ${name}`));
       if (gitInfo) {
         console.log(chalk.gray(`  Branch: ${gitInfo.branch}`));
@@ -282,10 +279,8 @@ program
     }
 
     // Stop tracking
-    stopWatcher();
-    if ((global as any).gitInterval) {
-      clearInterval((global as any).gitInterval);
-    }
+    stopWatcher(session.id!);
+    stopGitPolling(session.id!);
 
     // Git-based scan: if we stored a start HEAD, diff against current HEAD for accurate file/commit counts
     if (session.startGitHead) {
@@ -479,7 +474,7 @@ program
 
     if (cost === undefined || cost === null) {
       // Auto-calculate from pricing table (try provider/model -> model)
-      const auto = estimateCost(options.model, promptTk || totalTokens * 0.7, completionTk || totalTokens * 0.3, options.provider);
+      const auto = estimateCost(options.model, promptTk ?? totalTokens * 0.7, completionTk ?? totalTokens * 0.3, options.provider);
       if (auto !== null) {
         cost = Math.round(auto.cost * 1e10) / 1e10;
         pricingInfo = auto.pricingInfo;
@@ -714,7 +709,7 @@ if (require.main === module) {
 
 // Programmatic API exports
 export { createSession, getActiveSession, getActiveSessions, getActiveSessionForDir, endSession, getSession, getSessions, getStats, addFileChange, addCommit, addAIUsage, getFileChanges, getCommits, getAIUsage, exportSessions, loadPricing, setPricing, resetPricing, getPricingPath, addNote, getNotes, recoverStaleSessions, getSessionsPaginated, getSessionDetail, getDailyCosts, getModelBreakdown, getTopSessions, getProviderBreakdown, getFileHotspots, getActivityHeatmap, getDailyTokens, getCostVelocity, getProjectBreakdown, getTokenRatios } from './db';
-export { initGit, checkForNewCommits, getGitInfo, getGitRoot, getGitHead, getGitDiffFiles, getGitLogCommits } from './git';
-export { startWatcher, stopWatcher } from './watcher';
+export { initGit, startGitPolling, stopGitPolling, checkForNewCommits, getGitInfo, cleanupGit, getGitRoot, getGitHead, getGitDiffFiles, getGitLogCommits } from './git';
+export { startWatcher, stopWatcher, cleanupWatcher } from './watcher';
 export { Session, FileChange, Commit, AIUsage, SessionStats, SessionNote } from './types';
 export { AgentSession, AgentSessionConfig, AgentSessionSummary, BudgetExceededError, runAgentSession } from './agents';

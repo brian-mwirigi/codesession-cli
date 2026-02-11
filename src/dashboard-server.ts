@@ -54,7 +54,33 @@ function readOwnPid(port: number): number | null {
 function killOwnStaleProcess(port: number): boolean {
   const pid = readOwnPid(port);
   if (pid === null) return false;
+
   try {
+    // Double-check the process still exists before killing
+    process.kill(pid, 0);
+
+    // Verify it's actually our process (check command line contains 'dashboard' or 'node')
+    // This is a heuristic to avoid killing unrelated processes with recycled PIDs
+    let cmdLine = '';
+    try {
+      if (process.platform === 'win32') {
+        cmdLine = execSync(`wmic process where processid=${pid} get commandline`, { timeout: 2000, encoding: 'utf-8' });
+      } else {
+        cmdLine = readFileSync(`/proc/${pid}/cmdline`, 'utf-8').replace(/\0/g, ' ');
+      }
+    } catch (_) {
+      // Can't read cmdline - process might be gone or we lack permissions
+      removePidFile(port);
+      return false;
+    }
+
+    // Only kill if it looks like a dashboard process
+    if (!cmdLine.toLowerCase().includes('dashboard') && !cmdLine.toLowerCase().includes('node')) {
+      console.log(`  PID ${pid} doesn't appear to be a dashboard process, skipping kill`);
+      removePidFile(port);
+      return false;
+    }
+
     if (process.platform === 'win32') {
       execSync(`taskkill /PID ${pid} /F`, { timeout: 5000 });
     } else {
@@ -129,10 +155,21 @@ function buildApiRouter(): Router {
   router.get('/sessions/:id/diff', async (req, res) => {
     try {
       const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: 'Invalid session ID' });
+      }
+
       const session = getSession(id);
-      if (!session) return res.status(404).json({ error: 'Session not found' });
-      if (!session.gitRoot || !session.startGitHead) {
-        return res.status(400).json({ error: 'No git info for this session (no git root or start HEAD)' });
+      if (!session) {
+        return res.status(404).json({ error: `Session ${id} not found` });
+      }
+
+      if (!session.gitRoot) {
+        return res.status(400).json({ error: `Session ${id} has no git repository (not in a git directory)` });
+      }
+
+      if (!session.startGitHead) {
+        return res.status(400).json({ error: `Session ${id} has no start git HEAD (session started before git tracking was enabled)` });
       }
 
       const filePath = req.query.file as string | undefined;
@@ -142,7 +179,7 @@ function buildApiRouter(): Router {
       const diff = await getGitDiff(session.gitRoot, session.startGitHead, toSha, filePath || undefined);
       res.type('text/plain').send(diff || '(no changes)');
     } catch (e: any) {
-      res.status(500).json({ error: e.message });
+      res.status(500).json({ error: `Failed to fetch diff: ${e.message}` });
     }
   });
 
@@ -150,15 +187,24 @@ function buildApiRouter(): Router {
   router.get('/sessions/:id/commits/:hash/diff', async (req, res) => {
     try {
       const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: 'Invalid session ID' });
+      }
+
       const session = getSession(id);
-      if (!session) return res.status(404).json({ error: 'Session not found' });
-      if (!session.gitRoot) return res.status(400).json({ error: 'No git root for this session' });
+      if (!session) {
+        return res.status(404).json({ error: `Session ${id} not found` });
+      }
+
+      if (!session.gitRoot) {
+        return res.status(400).json({ error: `Session ${id} has no git repository` });
+      }
 
       const filePath = req.query.file as string | undefined;
       const diff = await getCommitDiff(session.gitRoot, req.params.hash, filePath || undefined);
       res.type('text/plain').send(diff || '(no changes)');
     } catch (e: any) {
-      res.status(500).json({ error: e.message });
+      res.status(500).json({ error: `Failed to fetch commit diff: ${e.message}` });
     }
   });
 
@@ -457,14 +503,28 @@ export function startDashboard(options: DashboardOptions = {}): void {
     });
   };
 
-  isPortInUse(port).then((inUse) => {
+  isPortInUse(port).then(async (inUse) => {
     if (inUse) {
       if (!jsonMode) {
         console.log(`\n  Port ${port} is already in use -- checking for stale dashboard...`);
       }
       const killed = killOwnStaleProcess(port);
       if (killed) {
-        setTimeout(startServer, 500);
+        // Wait for port to be freed, then verify it's actually free before starting
+        await new Promise(resolve => setTimeout(resolve, 500));
+        const stillInUse = await isPortInUse(port);
+        if (!stillInUse) {
+          startServer();
+        } else {
+          // Port still in use after kill - race condition or failed kill
+          if (jsonMode) {
+            console.log(JSON.stringify({ error: 'EADDRINUSE', message: `Port ${port} could not be freed`, port }));
+          } else {
+            console.error(`  Port ${port} could not be freed.`);
+            console.error(`  Try: cs dashboard --port ${port + 1}\n`);
+          }
+          process.exit(1);
+        }
       } else {
         if (jsonMode) {
           console.log(JSON.stringify({ error: 'EADDRINUSE', message: `Port ${port} is in use by another process (not a codesession dashboard)`, port }));

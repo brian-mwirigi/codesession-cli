@@ -3,6 +3,8 @@ import { join } from 'path';
 import { homedir } from 'os';
 import { existsSync, mkdirSync, readFileSync, writeFileSync, copyFileSync } from 'fs';
 import { Session, FileChange, Commit, AIUsage, SessionStats, SessionNote } from './types';
+import { cleanupGit } from './git';
+import { cleanupWatcher } from './watcher';
 
 // Data directory: prefer ~/.codesession, migrate from legacy ~/.devsession
 const NEW_DB_DIR = join(homedir(), '.codesession');
@@ -164,14 +166,22 @@ export function endSession(sessionId: number, endTime: string, notes?: string): 
   const session = getSession(sessionId);
   if (!session) return;
 
-  const duration = Math.floor((new Date(endTime).getTime() - new Date(session.startTime).getTime()) / 1000);
+  let duration = Math.floor((new Date(endTime).getTime() - new Date(session.startTime).getTime()) / 1000);
+  // Sanity check: cap at 1 year (unlikely but prevents overflow/corruption from clock skew)
+  if (duration < 0 || duration > 31536000) {
+    duration = Math.max(0, Math.min(duration, 31536000));
+  }
 
   const stmt = db.prepare(`
-    UPDATE sessions 
+    UPDATE sessions
     SET end_time = ?, duration = ?, status = ?, notes = ?
     WHERE id = ?
   `);
   stmt.run(endTime, duration, 'completed', notes || null, sessionId);
+
+  // Clean up session-scoped tracking
+  cleanupGit(sessionId);
+  cleanupWatcher(sessionId);
 }
 
 export function getSession(sessionId: number): Session | null {
@@ -187,53 +197,71 @@ export function getSessions(limit = 10): Session[] {
 }
 
 export function addFileChange(change: Omit<FileChange, 'id'>): void {
-  const stmt = db.prepare(`
-    INSERT INTO file_changes (session_id, file_path, change_type, timestamp)
-    VALUES (?, ?, ?, ?)
-  `);
-  stmt.run(change.sessionId, change.filePath, change.changeType, change.timestamp);
+  // Use transaction for atomic insert + count update
+  const transaction = db.transaction(() => {
+    const stmt = db.prepare(`
+      INSERT INTO file_changes (session_id, file_path, change_type, timestamp)
+      VALUES (?, ?, ?, ?)
+    `);
+    stmt.run(change.sessionId, change.filePath, change.changeType, change.timestamp);
 
-  // Update session files count
-  const countStmt = db.prepare('SELECT COUNT(DISTINCT file_path) as count FROM file_changes WHERE session_id = ?');
-  const result = countStmt.get(change.sessionId) as any;
-  
-  const updateStmt = db.prepare('UPDATE sessions SET files_changed = ? WHERE id = ?');
-  updateStmt.run(result.count, change.sessionId);
+    // Update session files count atomically
+    const updateStmt = db.prepare(`
+      UPDATE sessions
+      SET files_changed = (
+        SELECT COUNT(DISTINCT file_path) FROM file_changes WHERE session_id = ?
+      )
+      WHERE id = ?
+    `);
+    updateStmt.run(change.sessionId, change.sessionId);
+  });
+
+  transaction();
 }
 
 export function addCommit(commit: Omit<Commit, 'id'>): void {
-  const stmt = db.prepare(`
-    INSERT INTO commits (session_id, hash, message, timestamp)
-    VALUES (?, ?, ?, ?)
-  `);
-  stmt.run(commit.sessionId, commit.hash, commit.message, commit.timestamp);
+  // Use transaction for atomic insert + count update
+  const transaction = db.transaction(() => {
+    const stmt = db.prepare(`
+      INSERT INTO commits (session_id, hash, message, timestamp)
+      VALUES (?, ?, ?, ?)
+    `);
+    stmt.run(commit.sessionId, commit.hash, commit.message, commit.timestamp);
 
-  // Update session commits count
-  const countStmt = db.prepare('SELECT COUNT(*) as count FROM commits WHERE session_id = ?');
-  const result = countStmt.get(commit.sessionId) as any;
-  
-  const updateStmt = db.prepare('UPDATE sessions SET commits = ? WHERE id = ?');
-  updateStmt.run(result.count, commit.sessionId);
+    // Update session commits count atomically
+    const updateStmt = db.prepare(`
+      UPDATE sessions
+      SET commits = (
+        SELECT COUNT(*) FROM commits WHERE session_id = ?
+      )
+      WHERE id = ?
+    `);
+    updateStmt.run(commit.sessionId, commit.sessionId);
+  });
+
+  transaction();
 }
 
 export function addAIUsage(usage: Omit<AIUsage, 'id'>): void {
-  const stmt = db.prepare(`
-    INSERT INTO ai_usage (session_id, provider, model, tokens, prompt_tokens, completion_tokens, cost, timestamp)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-  stmt.run(usage.sessionId, usage.provider, usage.model, usage.tokens, usage.promptTokens || null, usage.completionTokens || null, usage.cost, usage.timestamp);
+  // Use transaction for atomic insert + sum update
+  const transaction = db.transaction(() => {
+    const stmt = db.prepare(`
+      INSERT INTO ai_usage (session_id, provider, model, tokens, prompt_tokens, completion_tokens, cost, timestamp)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    stmt.run(usage.sessionId, usage.provider, usage.model, usage.tokens, usage.promptTokens || null, usage.completionTokens || null, usage.cost, usage.timestamp);
 
-  // Update session AI totals
-  const sumStmt = db.prepare(`
-    SELECT SUM(cost) as total_cost, SUM(tokens) as total_tokens 
-    FROM ai_usage WHERE session_id = ?
-  `);
-  const result = sumStmt.get(usage.sessionId) as any;
-  
-  const updateStmt = db.prepare('UPDATE sessions SET ai_cost = ?, ai_tokens = ? WHERE id = ?');
-  // Round to 10 decimal places to prevent floating-point accumulation drift
-  const roundedCost = Math.round((result.total_cost || 0) * 1e10) / 1e10;
-  updateStmt.run(roundedCost, result.total_tokens || 0, usage.sessionId);
+    // Update session AI totals atomically
+    const updateStmt = db.prepare(`
+      UPDATE sessions
+      SET ai_cost = ROUND((SELECT SUM(cost) FROM ai_usage WHERE session_id = ?) * 10000000000) / 10000000000,
+          ai_tokens = (SELECT SUM(tokens) FROM ai_usage WHERE session_id = ?)
+      WHERE id = ?
+    `);
+    updateStmt.run(usage.sessionId, usage.sessionId, usage.sessionId);
+  });
+
+  transaction();
 }
 
 export function getFileChanges(sessionId: number): FileChange[] {
@@ -291,13 +319,15 @@ export function exportSessions(format: 'json' | 'csv', limit?: number): string {
 
   // CSV
   const header = 'id,name,status,startTime,endTime,duration,filesChanged,commits,aiTokens,aiCost,notes';
-  const rows = sessions.map((s) =>
-    [
-      s.id, `"${(s.name || '').replace(/"/g, '""')}"`, s.status, s.startTime, s.endTime || '',
+  const rows = sessions.map((s) => {
+    // Escape CSV special characters: quotes and newlines
+    const escapeCsv = (str: string) => str.replace(/"/g, '""').replace(/\n/g, '\\n').replace(/\r/g, '\\r');
+    return [
+      s.id, `"${escapeCsv(s.name || '')}"`, s.status, s.startTime, s.endTime || '',
       s.duration || '', s.filesChanged, s.commits, s.aiTokens,
-      s.aiCost, `"${(s.notes || '').replace(/"/g, '""')}"`
-    ].join(',')
-  );
+      s.aiCost, `"${escapeCsv(s.notes || '')}"`
+    ].join(',');
+  });
   return [header, ...rows].join('\n');
 }
 
@@ -715,7 +745,7 @@ export function getCostVelocity(limit: number = 50): Array<{
     startTime: r.start_time,
     duration: r.duration,
     aiCost: Math.round((r.ai_cost || 0) * 100) / 100,
-    costPerHour: Math.round(((r.ai_cost || 0) / (r.duration / 3600)) * 100) / 100,
+    costPerHour: r.duration > 0 ? Math.round(((r.ai_cost || 0) / (r.duration / 3600)) * 100) / 100 : 0,
   }));
 }
 
