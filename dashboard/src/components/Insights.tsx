@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { fetchApi } from '../api';
+import { useInterval } from '../hooks/useInterval';
 import { formatCost, formatTokens } from '../utils/format';
 import { IconTarget, IconZap, IconCpu, IconBarChart, IconFolder } from './Icons';
 import {
@@ -67,11 +68,17 @@ export default function Insights() {
   const [tab, setTab] = useState<'hotspots' | 'heatmap' | 'projects' | 'pricing'>('hotspots');
 
   useEffect(() => {
+    fetchAll();
+  }, []);
+
+  const fetchAll = useCallback(() => {
     fetchApi<FileHotspot[]>('/api/file-hotspots').then(setHotspots);
     fetchApi<HeatmapCell[]>('/api/activity-heatmap').then(setHeatmap);
     fetchApi<ProjectRow[]>('/api/projects').then(setProjects);
     fetchApi<PricingMap>('/api/pricing').then(setPricing);
   }, []);
+
+  useInterval(fetchAll, 30_000);
 
   const tabs = [
     { key: 'hotspots' as const, label: 'File Hotspots', icon: <IconTarget size={14} />, count: hotspots.length },

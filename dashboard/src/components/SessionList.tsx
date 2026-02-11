@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { fetchApi } from '../api';
+import { useInterval } from '../hooks/useInterval';
 import { formatCost, formatDuration, formatDate, formatTokens } from '../utils/format';
 import { IconDownload } from './Icons';
 
@@ -32,7 +33,7 @@ export default function SessionList({ onSessionClick }: Props) {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const limit = 25;
 
-  useEffect(() => {
+  const fetchSessions = useCallback(() => {
     fetchApi<{ sessions: Session[]; total: number }>('/api/sessions', {
       limit: String(limit),
       offset: String(page * limit),
@@ -43,6 +44,12 @@ export default function SessionList({ onSessionClick }: Props) {
       setTotal(data.total);
     });
   }, [status, search, page]);
+
+  useEffect(() => {
+    fetchSessions();
+  }, [fetchSessions]);
+
+  useInterval(fetchSessions, 30_000);
 
   const sorted = useMemo(() => {
     return [...sessions].sort((a, b) => {

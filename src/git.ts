@@ -146,3 +146,30 @@ export async function getCommitDiff(cwd: string, hash: string, filePath?: string
     return '';
   }
 }
+
+/**
+ * Get per-file diff stats (additions/deletions) between two SHAs.
+ * Uses `git diff --numstat`.
+ */
+export async function getGitDiffStats(
+  cwd: string,
+  fromSha: string,
+  toSha: string | null,
+): Promise<{ filePath: string; additions: number; deletions: number }[]> {
+  try {
+    const g = simpleGit(cwd);
+    const range = toSha ? `${fromSha}..${toSha}` : `${fromSha}..HEAD`;
+    const result = await g.raw(['diff', '--numstat', range]);
+    if (!result.trim()) return [];
+    return result.trim().split('\n').map((line) => {
+      const [add, del, ...pathParts] = line.split('\t');
+      return {
+        filePath: pathParts.join('\t'),
+        additions: add === '-' ? 0 : parseInt(add) || 0,
+        deletions: del === '-' ? 0 : parseInt(del) || 0,
+      };
+    });
+  } catch (_) {
+    return [];
+  }
+}

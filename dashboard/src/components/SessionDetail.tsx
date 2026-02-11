@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { fetchApi, fetchDiff, fetchCommitDiff } from '../api';
+import { fetchApi, fetchDiff, fetchCommitDiff, fetchDiffStats } from '../api';
+import type { DiffStat } from '../api';
+import { useInterval } from '../hooks/useInterval';
 import { formatCost, formatDuration, formatDate, formatTokens } from '../utils/format';
 import { IconArrowLeft, IconFolder, IconCalendar, IconToken, IconDollar, IconHash, IconClock, IconGitBranch } from './Icons';
 
@@ -70,8 +72,14 @@ export default function SessionDetail({ sessionId, onBack }: Props) {
   const [tab, setTab] = useState<'timeline' | 'files' | 'commits' | 'ai' | 'notes'>('timeline');
 
   useEffect(() => {
+    fetchData();
+  }, [sessionId]);
+
+  const fetchData = useCallback(() => {
     fetchApi<SessionDetailResponse>(`/api/sessions/${sessionId}`).then(setData);
   }, [sessionId]);
+
+  useInterval(fetchData, 30_000);
 
   const timeline = useMemo<TimelineEntry[]>(() => {
     if (!data) return [];
@@ -232,6 +240,16 @@ function FilesTable({ files, sessionId }: { files: FileChange[]; sessionId: numb
   const [expandedFile, setExpandedFile] = useState<string | null>(null);
   const [diffText, setDiffText] = useState<string>('');
   const [loading, setLoading] = useState(false);
+  const [diffStats, setDiffStats] = useState<Record<string, DiffStat>>({});
+
+  // Fetch diff stats once
+  useEffect(() => {
+    fetchDiffStats(sessionId).then((stats) => {
+      const map: Record<string, DiffStat> = {};
+      for (const s of stats) map[s.filePath] = s;
+      setDiffStats(map);
+    }).catch(() => {});
+  }, [sessionId]);
 
   const toggleDiff = useCallback(async (filePath: string) => {
     if (expandedFile === filePath) {
@@ -250,38 +268,90 @@ function FilesTable({ files, sessionId }: { files: FileChange[]; sessionId: numb
     setLoading(false);
   }, [expandedFile, sessionId]);
 
+  // Summary totals
+  const totalAdd = Object.values(diffStats).reduce((s, d) => s + d.additions, 0);
+  const totalDel = Object.values(diffStats).reduce((s, d) => s + d.deletions, 0);
+
   if (files.length === 0) return <div className="empty-state">No file changes recorded</div>;
+
+  // Split file path into directory + filename
+  const splitPath = (p: string) => {
+    const idx = Math.max(p.lastIndexOf('/'), p.lastIndexOf('\\'));
+    if (idx < 0) return { dir: '', name: p };
+    return { dir: p.slice(0, idx + 1), name: p.slice(idx + 1) };
+  };
+
   return (
-    <table className="tbl">
-      <thead>
-        <tr>
-          <th>Path</th>
-          <th>Type</th>
-          <th className="r">Time</th>
-        </tr>
-      </thead>
-      <tbody>
-        {files.map((f, i) => (
-          <>
-            <tr key={i} className="clickable-row" onClick={() => toggleDiff(f.filePath)} title="Click to view diff">
-              <td className="mono ellipsis" title={f.filePath}>
-                <span className="diff-toggle">{expandedFile === f.filePath ? '\u25BC' : '\u25B6'}</span>
-                {' '}{f.filePath}
-              </td>
-              <td><span className={`badge badge-file-${f.changeType}`}>{f.changeType}</span></td>
-              <td className="r mono">{formatDate(f.timestamp)}</td>
-            </tr>
-            {expandedFile === f.filePath && (
-              <tr key={`diff-${i}`}>
-                <td colSpan={3} className="diff-cell">
-                  {loading ? <div className="diff-loading">Loading diff...</div> : <DiffView diff={diffText} />}
-                </td>
-              </tr>
-            )}
-          </>
-        ))}
-      </tbody>
-    </table>
+    <div>
+      {/* Summary bar like GitHub PR */}
+      {totalAdd + totalDel > 0 && (
+        <div className="diff-summary">
+          <span className="diff-summary-text">
+            Showing <strong>{files.length}</strong> changed file{files.length !== 1 ? 's' : ''} with{' '}
+            <strong className="diff-add-text">+{totalAdd.toLocaleString()}</strong> addition{totalAdd !== 1 ? 's' : ''} and{' '}
+            <strong className="diff-del-text">-{totalDel.toLocaleString()}</strong> deletion{totalDel !== 1 ? 's' : ''}
+          </span>
+        </div>
+      )}
+      <table className="tbl">
+        <thead>
+          <tr>
+            <th>File</th>
+            <th>Type</th>
+            <th className="r">Changes</th>
+            <th className="r">Time</th>
+          </tr>
+        </thead>
+        <tbody>
+          {files.map((f, i) => {
+            const stat = diffStats[f.filePath];
+            const { dir, name } = splitPath(f.filePath);
+            const add = stat?.additions || 0;
+            const del = stat?.deletions || 0;
+            const total = add + del;
+            const maxBlocks = 5;
+            const addBlocks = total > 0 ? Math.round((add / total) * maxBlocks) : 0;
+            const delBlocks = total > 0 ? maxBlocks - addBlocks : 0;
+
+            return (
+              <>
+                <tr key={i} className="clickable-row" onClick={() => toggleDiff(f.filePath)} title="Click to view diff">
+                  <td className="mono ellipsis" title={f.filePath}>
+                    <span className="diff-toggle">{expandedFile === f.filePath ? '\u25BC' : '\u25B6'}</span>
+                    {' '}{dir && <span className="file-dir">{dir}</span>}<strong>{name}</strong>
+                  </td>
+                  <td><span className={`badge badge-file-${f.changeType}`}>{f.changeType}</span></td>
+                  <td className="r mono diff-stat-cell">
+                    {stat ? (
+                      <>
+                        <span className="diff-add-text">+{add}</span>{' '}
+                        <span className="diff-del-text">-{del}</span>{' '}
+                        <span className="diff-bar">
+                          {Array.from({ length: addBlocks }).map((_, j) => (
+                            <span key={`a${j}`} className="diff-block diff-block--add" />
+                          ))}
+                          {Array.from({ length: delBlocks }).map((_, j) => (
+                            <span key={`d${j}`} className="diff-block diff-block--del" />
+                          ))}
+                        </span>
+                      </>
+                    ) : '—'}
+                  </td>
+                  <td className="r mono">{formatDate(f.timestamp)}</td>
+                </tr>
+                {expandedFile === f.filePath && (
+                  <tr key={`diff-${i}`}>
+                    <td colSpan={4} className="diff-cell">
+                      {loading ? <div className="diff-loading">Loading diff...</div> : <DiffView diff={diffText} />}
+                    </td>
+                  </tr>
+                )}
+              </>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }
 

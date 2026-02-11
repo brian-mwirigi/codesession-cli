@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { fetchApi } from '../api';
+import { useInterval } from '../hooks/useInterval';
 import { formatCost, formatTokens } from '../utils/format';
 import { IconModels, IconDollar, IconToken, IconHash } from './Icons';
 import {
@@ -57,10 +58,16 @@ export default function ModelBreakdown() {
   const [ratios, setRatios] = useState<TokenRatio[]>([]);
 
   useEffect(() => {
+    fetchAll();
+  }, []);
+
+  const fetchAll = useCallback(() => {
     fetchApi<ModelRow[]>('/api/model-breakdown').then(setModels);
     fetchApi<ProviderRow[]>('/api/provider-breakdown').then(setProviders);
     fetchApi<TokenRatio[]>('/api/token-ratios').then(setRatios);
   }, []);
+
+  useInterval(fetchAll, 30_000);
 
   const totalCost = models.reduce((s, m) => s + m.totalCost, 0);
   const totalTokens = models.reduce((s, m) => s + m.totalTokens, 0);

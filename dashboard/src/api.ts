@@ -56,3 +56,13 @@ export async function fetchCommitDiff(sessionId: number, hash: string, filePath?
   }
   return res.text();
 }
+
+export interface DiffStat {
+  filePath: string;
+  additions: number;
+  deletions: number;
+}
+
+export async function fetchDiffStats(sessionId: number): Promise<DiffStat[]> {
+  return fetchApi<DiffStat[]>(`/api/sessions/${sessionId}/diff-stats`);
+}

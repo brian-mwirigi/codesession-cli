@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   AreaChart, Area, BarChart, Bar,
   XAxis, YAxis, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import { fetchApi } from '../api';
+import { useInterval } from '../hooks/useInterval';
 import { formatCost, formatDuration, formatTokens, formatDay } from '../utils/format';
 import { IconSessions, IconDollar, IconClock, IconTrendUp, IconCircleDot, IconFile, IconGitCommit } from './Icons';
 
@@ -60,12 +61,18 @@ export default function Overview({ onSessionClick }: Props) {
   const [velocity, setVelocity] = useState<CostVelocityItem[]>([]);
 
   useEffect(() => {
+    fetchAll();
+  }, []);
+
+  const fetchAll = useCallback(() => {
     fetchApi<Stats>('/api/stats').then(setStats);
     fetchApi<DailyCost[]>('/api/daily-costs', { days: '30' }).then(setDaily);
     fetchApi<DailyToken[]>('/api/daily-tokens', { days: '30' }).then(setDailyTokens);
     fetchApi<TopSession[]>('/api/top-sessions', { limit: '5' }).then(setTop);
     fetchApi<CostVelocityItem[]>('/api/cost-velocity', { limit: '20' }).then(setVelocity);
   }, []);
+
+  useInterval(fetchAll, 30_000);
 
   if (!stats) return <div className="loading">Loading…</div>;
 

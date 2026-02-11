@@ -1263,3 +1263,45 @@ body {
   padding-top: 8px;
   padding-bottom: 4px;
 }
+
+/* GitHub PR-style diff summary */
+.diff-summary {
+  padding: 10px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 13px;
+  color: #adb5bd;
+}
+.diff-summary-text strong {
+  color: #e6edf3;
+}
+.diff-add-text {
+  color: #3fb950;
+}
+.diff-del-text {
+  color: #f85149;
+}
+.file-dir {
+  color: #6e7681;
+}
+.diff-stat-cell {
+  white-space: nowrap;
+  font-size: 12px;
+}
+.diff-bar {
+  display: inline-flex;
+  gap: 1px;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+.diff-block {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 1px;
+}
+.diff-block--add {
+  background: #3fb950;
+}
+.diff-block--del {
+  background: #f85149;
+}

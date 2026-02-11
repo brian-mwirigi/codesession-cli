@@ -14,7 +14,7 @@ import {
   getDailyTokens, getCostVelocity, getProjectBreakdown, getTokenRatios,
   getSession, getCommits,
 } from './db';
-import { getGitDiff, getCommitDiff } from './git';
+import { getGitDiff, getCommitDiff, getGitDiffStats } from './git';
 
 interface DashboardOptions {
   port?: number;
@@ -157,6 +157,26 @@ function buildApiRouter(): Router {
       const filePath = req.query.file as string | undefined;
       const diff = await getCommitDiff(session.gitRoot, req.params.hash, filePath || undefined);
       res.type('text/plain').send(diff || '(no changes)');
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // Per-file diff stats (additions/deletions) for a session
+  router.get('/sessions/:id/diff-stats', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const session = getSession(id);
+      if (!session) return res.status(404).json({ error: 'Session not found' });
+      if (!session.gitRoot || !session.startGitHead) {
+        return res.json([]);
+      }
+
+      const commits = getCommits(id);
+      const toSha = session.status === 'active' ? null : (commits.length > 0 ? commits[commits.length - 1].hash : null);
+
+      const stats = await getGitDiffStats(session.gitRoot, session.startGitHead, toSha);
+      res.json(stats);
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }
