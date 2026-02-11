@@ -21,17 +21,45 @@
 
 ---
 
-##  What's New in v1.9.0
+## What's New in v1.9.1
 
-**Major Stability Release** - 13 critical bugs fixed for production-grade concurrent session support:
+**Agent Name Tracking** - Differentiate between agents in multi-agent workflows:
 
--  **Concurrent Sessions** - Multiple agents/repos now work flawlessly (fixed 4 race conditions)
--  **Data Integrity** - Atomic transactions prevent corruption (fixed 5 high-severity bugs)
--  **Resource Management** - No more memory leaks or orphaned timers (fixed 4 medium bugs)
--  **Dashboard Fixes** - HTTPS mixed content resolved, better error messages
--  **GitHub PR-Style Diffs** - Enhanced file viewer with visual diff bars & stats
+- **Track Agent Names** - `--agent "Code Review Bot"` flag for cost attribution
+- **Dashboard Column** - New "Agent" column in AI usage table
+- **Multi-Agent Support** - Perfect for CrewAI, AutoGen, LangChain workflows
+- **Cost Attribution** - Know which agent is spending what
+
+**Also in v1.9.0:**
+- **Concurrent Sessions** - Multiple agents/repos work flawlessly (fixed 4 race conditions)
+- **Data Integrity** - Atomic transactions prevent corruption (fixed 5 high-severity bugs)
+- **Resource Management** - No memory leaks or orphaned timers (fixed 4 medium bugs)
+- **GitHub PR-Style Diffs** - Enhanced file viewer with visual diff bars & stats
 
 [Full Changelog →](https://github.com/brian-mwirigi/codesession-cli/blob/main/CHANGELOG.md)
+
+---
+
+## Dashboard Preview
+
+<div align="center">
+  <img src="docs/screenshots/dashboard-overview.png" alt="Dashboard Overview" width="800">
+  <p><em>Real-time cost tracking, session analytics, and model breakdown</em></p>
+</div>
+
+<details>
+<summary>View More Screenshots</summary>
+
+### Session Detail View
+<img src="docs/screenshots/session-detail.png" alt="Session Detail" width="800">
+
+### AI Usage with Agent Tracking
+<img src="docs/screenshots/agent-tracking.png" alt="Agent Tracking" width="800">
+
+### Cost Charts & Analytics
+<img src="docs/screenshots/cost-charts.png" alt="Cost Charts" width="800">
+
+</details>
 
 ---
 
@@ -127,6 +155,34 @@ cs status --json
 cs log-ai -p openai -m gpt-4o --prompt-tokens 3000 --completion-tokens 2000 --json
 # {"logged":{"provider":"openai","model":"gpt-4o","tokens":5000,"promptTokens":3000,"completionTokens":2000,"cost":0.0275},"session":{"id":42,"aiCost":3.52,"aiTokens":94000}}
 ```
+
+### Agent Workflow
+
+```mermaid
+graph LR
+    A[Start Session] --> B[Agent Works]
+    B --> C[Log AI Calls]
+    C --> D{More Work?}
+    D -->|Yes| B
+    D -->|No| E[End Session]
+    E --> F[View Dashboard]
+
+    B -.->|Auto-tracked| G[File Changes]
+    B -.->|Auto-tracked| H[Git Commits]
+    C -.->|Tracked| I[Tokens & Cost]
+
+    style A fill:#4CAF50
+    style E fill:#2196F3
+    style F fill:#FF9800
+```
+
+**Typical agent flow:**
+1. `cs start "Task name" --json --close-stale` - Creates session
+2. Agent performs work (files, commits auto-tracked)
+3. `cs log-ai -p anthropic -m claude-sonnet-4 --agent "Agent Name" --json` - Log each AI call
+4. `cs status --json` - Check costs mid-session
+5. `cs end -n "Task complete" --json` - Finalize and summarize
+6. `cs dashboard` - Review analytics
 
 ---
 
