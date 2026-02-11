@@ -128,7 +128,7 @@ export class AgentSession {
    * @returns The remaining budget (null if no budget set)
    * @throws BudgetExceededError if budget is exceeded
    */
-  logAI(provider: string, model: string, tokens: number, cost: number, options?: { promptTokens?: number; completionTokens?: number }): number | null {
+  logAI(provider: string, model: string, tokens: number, cost: number, options?: { promptTokens?: number; completionTokens?: number; agentName?: string }): number | null {
     this.assertStarted();
 
     // Check budget BEFORE writing to database
@@ -150,6 +150,7 @@ export class AgentSession {
       promptTokens: options?.promptTokens,
       completionTokens: options?.completionTokens,
       cost,
+      agentName: options?.agentName,
       timestamp: new Date().toISOString(),
     });
 

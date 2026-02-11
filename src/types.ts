@@ -40,6 +40,7 @@ export interface AIUsage {
   promptTokens?: number;
   completionTokens?: number;
   cost: number;
+  agentName?: string;
   timestamp: string;
 }
 

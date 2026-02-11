@@ -5,6 +5,22 @@ All notable changes to codesession-cli will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.1] - 2026-02-11
+
+### Added
+- **Agent Name Tracking** - Added optional `--agent` parameter to `cs log-ai` command for tracking which agent performed the work
+  - CLI: `cs log-ai -p anthropic -m claude-sonnet-4 --agent "Code Review Bot" --json`
+  - API: `session.logAI('anthropic', 'claude-sonnet-4', tokens, cost, { agentName: 'Research Agent' })`
+  - Dashboard: New "Agent" column in AI usage table showing agent names
+  - Database: Added `agent_name` column to `ai_usage` table with automatic migration
+  - Timeline: Agent names displayed inline with AI usage entries (e.g., `[Agent Name]`)
+
+### Technical Details
+- Optional parameter - fully backward compatible with existing usage
+- Supports environment variable fallback: `CODESESSION_AGENT_NAME`
+- Enables differentiation between multiple agents in concurrent workflows
+- Particularly useful for multi-agent systems, A/B testing, and cost attribution
+
 ## [1.9.0] - 2025-02-11
 
 ### Fixed - Critical Bug Fixes

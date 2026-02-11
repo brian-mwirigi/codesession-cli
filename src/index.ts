@@ -429,6 +429,7 @@ program
   .option('-c, --cost <cost>', 'Cost in dollars (auto-calculated if omitted)', parseFloat)
   .option('--prompt-tokens <n>', 'Prompt/input tokens', parseInt)
   .option('--completion-tokens <n>', 'Completion/output tokens', parseInt)
+  .option('--agent <name>', 'Agent name (optional)')
   .option('-s, --session <id>', 'Target a specific session by ID', parseInt)
   .option('--json', 'Output JSON (for agents)')
   .action((options) => {
@@ -506,6 +507,7 @@ program
       promptTokens: promptTk || undefined,
       completionTokens: completionTk || undefined,
       cost,
+      agentName: options.agent || undefined,
       timestamp: new Date().toISOString(),
     });
 
@@ -513,12 +515,13 @@ program
     const updated = getSession(session.id!);
     if (options.json) {
       console.log(JSON.stringify(jsonWrap({
-        logged: { provider: options.provider, model: options.model, tokens: totalTokens, promptTokens: promptTk || undefined, completionTokens: completionTk || undefined, cost },
+        logged: { provider: options.provider, model: options.model, tokens: totalTokens, promptTokens: promptTk || undefined, completionTokens: completionTk || undefined, cost, agentName: options.agent || undefined },
         pricing: pricingInfo,
         session: { id: session.id, aiCost: updated?.aiCost || 0, aiTokens: updated?.aiTokens || 0 },
       })));
     } else {
-      console.log(chalk.green(`\nLogged: ${totalTokens.toLocaleString()} tokens, ${formatCost(cost)}`));
+      const agentStr = options.agent ? ` (${options.agent})` : '';
+      console.log(chalk.green(`\nLogged: ${totalTokens.toLocaleString()} tokens, ${formatCost(cost)}${agentStr}`));
       console.log(chalk.gray(`  Session total: ${(updated?.aiTokens || 0).toLocaleString()} tokens, ${formatCost(updated?.aiCost || 0)}\n`));
     }
   });

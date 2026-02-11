@@ -113,6 +113,9 @@ try {
 try {
   db.exec('ALTER TABLE ai_usage ADD COLUMN completion_tokens INTEGER');
 } catch (_) { /* column already exists */ }
+try {
+  db.exec('ALTER TABLE ai_usage ADD COLUMN agent_name TEXT');
+} catch (_) { /* column already exists */ }
 
 // Migration: add git_root and start_git_head columns if missing
 try {
@@ -246,10 +249,10 @@ export function addAIUsage(usage: Omit<AIUsage, 'id'>): void {
   // Use transaction for atomic insert + sum update
   const transaction = db.transaction(() => {
     const stmt = db.prepare(`
-      INSERT INTO ai_usage (session_id, provider, model, tokens, prompt_tokens, completion_tokens, cost, timestamp)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO ai_usage (session_id, provider, model, tokens, prompt_tokens, completion_tokens, cost, agent_name, timestamp)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
-    stmt.run(usage.sessionId, usage.provider, usage.model, usage.tokens, usage.promptTokens || null, usage.completionTokens || null, usage.cost, usage.timestamp);
+    stmt.run(usage.sessionId, usage.provider, usage.model, usage.tokens, usage.promptTokens || null, usage.completionTokens || null, usage.cost, usage.agentName || null, usage.timestamp);
 
     // Update session AI totals atomically
     const updateStmt = db.prepare(`
@@ -300,6 +303,7 @@ export function getAIUsage(sessionId: number): AIUsage[] {
     promptTokens: row.prompt_tokens || undefined,
     completionTokens: row.completion_tokens || undefined,
     cost: row.cost,
+    agentName: row.agent_name || undefined,
     timestamp: row.timestamp,
   }));
 }

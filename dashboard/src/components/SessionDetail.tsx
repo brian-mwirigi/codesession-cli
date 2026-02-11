@@ -24,6 +24,7 @@ interface AiUsage {
   promptTokens?: number;
   completionTokens?: number;
   cost: number;
+  agentName?: string;
   timestamp: string;
 }
 
@@ -225,7 +226,8 @@ function TimelineView({ entries }: { entries: TimelineEntry[] }) {
               })()}
               {e.type === 'ai' && (() => {
                 const a = e.data as AiUsage;
-                return <span>{a.provider}/{a.model} — {formatTokens(a.tokens)} tokens — {formatCost(a.cost)}</span>;
+                const agentStr = a.agentName ? ` [${a.agentName}]` : '';
+                return <span>{a.provider}/{a.model}{agentStr} — {formatTokens(a.tokens)} tokens — {formatCost(a.cost)}</span>;
               })()}
               {e.type === 'note' && <span>{(e.data as Note).message}</span>}
             </div>
@@ -420,6 +422,7 @@ function AiTable({ usage }: { usage: AiUsage[] }) {
         <tr>
           <th>Provider</th>
           <th>Model</th>
+          <th>Agent</th>
           <th className="r">Prompt</th>
           <th className="r">Completion</th>
           <th className="r">Total</th>
@@ -432,6 +435,7 @@ function AiTable({ usage }: { usage: AiUsage[] }) {
           <tr key={i}>
             <td className="mono">{a.provider}</td>
             <td className="mono">{a.model}</td>
+            <td className="mono">{a.agentName || '—'}</td>
             <td className="r mono">{formatTokens(a.promptTokens)}</td>
             <td className="r mono">{formatTokens(a.completionTokens)}</td>
             <td className="r mono">{formatTokens(a.tokens)}</td>
