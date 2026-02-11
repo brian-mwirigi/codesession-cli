@@ -1,6 +1,6 @@
 ---
 name: codesession
-description: Track agent session costs, file changes, and git commits with codesession-cli. Enforces budget limits and provides detailed session analytics with a web dashboard. v1.9.0 - Production-ready with concurrent session support.
+description: Track agent session costs, file changes, and git commits with codesession-cli. Enforces budget limits and provides detailed session analytics with a web dashboard. v1.9.1 - Now with agent name tracking for multi-agent workflows.
 metadata: {"openclaw": {"homepage": "https://github.com/brian-mwirigi/codesession-cli", "requires": {"bins": ["cs"]}, "install": [{"id": "npm", "kind": "node", "package": "codesession-cli", "bins": ["cs"], "label": "Install codesession-cli (npm)"}]}}
 ---
 
@@ -8,7 +8,7 @@ metadata: {"openclaw": {"homepage": "https://github.com/brian-mwirigi/codesessio
 
 Track agent session costs, file changes, and git commits. Enforces budget limits and provides detailed session analytics with a full web dashboard.
 
-**Latest: v1.9.0** - Major stability release with 13 critical bug fixes for concurrent session support.
+**Latest: v1.9.1** - Agent name tracking for multi-agent workflows + concurrent session support.
 
 📦 [npm](https://www.npmjs.com/package/codesession-cli) • ⭐ [GitHub](https://github.com/brian-mwirigi/codesession-cli) • 📝 [Changelog](https://github.com/brian-mwirigi/codesession-cli/blob/main/CHANGELOG.md)
 
@@ -64,14 +64,19 @@ cs start "task description"
 # With granular tokens (cost auto-calculated from built-in pricing):
 cs log-ai -p anthropic -m claude-sonnet-4 --prompt-tokens 8000 --completion-tokens 2000 --json
 
+# With agent name tracking (NEW in v1.9.1):
+cs log-ai -p anthropic -m claude-sonnet-4 --prompt-tokens 8000 --completion-tokens 2000 --agent "Code Review Bot" --json
+
 # With manual cost:
 cs log-ai -p anthropic -m claude-opus-4-6 -t 15000 -c 0.30 --json
 
 # With all fields:
-cs log-ai -p openai -m gpt-4o --prompt-tokens 5000 --completion-tokens 1500 -c 0.04 --json
+cs log-ai -p openai -m gpt-4o --prompt-tokens 5000 --completion-tokens 1500 -c 0.04 --agent "Research Agent" --json
 ```
 Providers: `anthropic`, `openai`, `google`, `mistral`, `deepseek`
 Cost is auto-calculated from a configurable pricing table (17+ built-in models). Use `cs pricing list --json` to see known models. If a model is unknown, provide `-c <cost>` manually.
+
+**Agent Name (optional):** Use `--agent "Agent Name"` to track which agent performed the work. Perfect for multi-agent systems, A/B testing, and cost attribution. Agent names appear in the dashboard and can be used to filter/analyze costs per agent.
 
 ### Check current status
 ```bash
@@ -135,10 +140,12 @@ Agents should **always** use `--json` on every command for structured, parseable
 
 1. At task start: `cs start "Fix authentication bug" --json --close-stale`
 2. Add context notes: `cs note "analyzing auth flow" --json`
-3. After each AI call: `cs log-ai -p anthropic -m claude-sonnet-4 --prompt-tokens 8000 --completion-tokens 2000 --json`
+3. After each AI call: `cs log-ai -p anthropic -m claude-sonnet-4 --prompt-tokens 8000 --completion-tokens 2000 --agent "Bug Fixer" --json`
 4. Check spend: `cs status --json` -- read `aiCost` field
 5. At task end: `cs end -n "Fixed the auth bug, added tests" --json`
 6. Review past sessions: `cs dashboard`
+
+**Tip:** Use the `--agent` flag to identify your agent's work, especially useful in multi-agent systems where different agents handle different tasks (e.g., "Code Review Bot", "Test Writer", "Documentation Agent").
 
 ## Pricing
 
