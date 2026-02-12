@@ -11,6 +11,8 @@
 
   <p><em>Track agent runs • Monitor files • Log commits • Enforce budgets</em></p>
 
+  <p>If this tool saves you money, consider <a href="https://github.com/brian-mwirigi/codesession-cli">giving it a star</a> -- it helps others discover it.</p>
+
   <p>
     <a href="https://www.npmjs.com/package/codesession-cli"> npm</a> •
     <a href="https://github.com/brian-mwirigi/codesession-cli"> GitHub</a> •
