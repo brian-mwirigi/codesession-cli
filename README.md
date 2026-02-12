@@ -116,47 +116,28 @@ codesession-cli uses an embedded SQLite database ([better-sqlite3](https://githu
 npm install -g codesession-cli
 ```
 
-## Quick Start
+## Quick Start (for Agents)
 
-### CLI Usage
+If you use OpenClaw, Claude Code, or any AI agent framework, this is for you. All commands support `--json` for machine-readable output:
 
 ```bash
-# Start a session
-cs start "Build user auth"
+# Start tracking (--close-stale handles crashed sessions)
+cs start "Fix authentication bug" --close-stale --json
+# {"schemaVersion":1,"id":42,"name":"Fix authentication bug","status":"active",...}
 
-# Log AI usage — cost auto-calculated from built-in pricing
-cs log-ai -p anthropic -m claude-sonnet-4 --prompt-tokens 8000 --completion-tokens 2000
+# Log each AI call (cost auto-calculated from built-in pricing)
+cs log-ai -p anthropic -m claude-sonnet-4 --prompt-tokens 8000 --completion-tokens 2000 --agent "Code Review Bot" --json
 
-# Or provide cost manually
-cs log-ai -p anthropic -m claude-opus-4-6 -t 15000 -c 0.30
-
-# Check current costs mid-session
-cs status
+# Check spend mid-session
+cs status --json
+# {"id":42,"aiCost":3.47,"aiTokens":89000,...}
 
 # End session
-cs end -n "Auth complete, all tests passing"
-
-# View session history
-cs list
-cs show --files --commits
-cs stats
-
-# Export sessions
-cs export --format csv
-cs export --format json --limit 10
+cs end -n "Auth complete, all tests passing" --json
+# {"id":42,"duration":847,"filesChanged":12,"aiCost":4.80,...}
 ```
 
-### JSON Output (for agents)
-
-Every command supports `--json` for machine-readable output:
-
-```bash
-cs status --json
-# {"id":42,"name":"Fix auth","status":"active","aiCost":3.47,"aiTokens":89000,...}
-
-cs log-ai -p openai -m gpt-4o --prompt-tokens 3000 --completion-tokens 2000 --json
-# {"logged":{"provider":"openai","model":"gpt-4o","tokens":5000,"promptTokens":3000,"completionTokens":2000,"cost":0.0275},"session":{"id":42,"aiCost":3.52,"aiTokens":94000}}
-```
+Files and git commits are tracked automatically -- no extra commands needed.
 
 ### Agent Workflow
 
@@ -185,6 +166,36 @@ graph LR
 4. `cs status --json` - Check costs mid-session
 5. `cs end -n "Task complete" --json` - Finalize and summarize
 6. `cs dashboard` - Review analytics
+
+### CLI Usage (Manual / Interactive)
+
+For human developers tracking their own sessions:
+
+```bash
+# Start a session
+cs start "Build user auth"
+
+# Log AI usage
+cs log-ai -p anthropic -m claude-sonnet-4 --prompt-tokens 8000 --completion-tokens 2000
+
+# Or provide cost manually
+cs log-ai -p anthropic -m claude-opus-4-6 -t 15000 -c 0.30
+
+# Check current costs mid-session
+cs status
+
+# End session
+cs end -n "Auth complete, all tests passing"
+
+# View session history
+cs list
+cs show --files --commits
+cs stats
+
+# Export sessions
+cs export --format csv
+cs export --format json --limit 10
+```
 
 ---
 

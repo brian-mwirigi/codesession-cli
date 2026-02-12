@@ -416,6 +416,7 @@ program
       })));
     } else {
       displayStats(stats);
+      console.log(chalk.dim('\n  Star on GitHub: https://github.com/brian-mwirigi/codesession-cli'));
     }
   });
 

@@ -141,6 +141,7 @@ function buildApiRouter(): Router {
   router.get('/sessions/:id', (req, res) => {
     try {
       const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ error: 'Invalid session ID' });
       const detail = getSessionDetail(id);
       if (!detail) return res.status(404).json({ error: 'Session not found' });
       res.json(detail);
@@ -200,8 +201,12 @@ function buildApiRouter(): Router {
         return res.status(400).json({ error: `Session ${id} has no git repository` });
       }
 
+      const hash = req.params.hash;
+      if (!/^[0-9a-fA-F]{4,40}$/.test(hash)) {
+        return res.status(400).json({ error: 'Invalid commit hash' });
+      }
       const filePath = req.query.file as string | undefined;
-      const diff = await getCommitDiff(session.gitRoot, req.params.hash, filePath || undefined);
+      const diff = await getCommitDiff(session.gitRoot, hash, filePath || undefined);
       res.type('text/plain').send(diff || '(no changes)');
     } catch (e: any) {
       res.status(500).json({ error: `Failed to fetch commit diff: ${e.message}` });
