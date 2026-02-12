@@ -5,6 +5,13 @@ All notable changes to codesession-cli will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.4] - 2026-02-12
+
+### Fixed
+- **CSV Export Missing Agent Data** - Added `agents` column to CSV export with unique agent names per session
+- **CODESESSION_AGENT_NAME Env Var** - Environment variable fallback was documented but not implemented; now properly falls back to `process.env.CODESESSION_AGENT_NAME` when `--agent` is not provided
+- **Session ID Validation** - Added missing `isNaN` check on the `/api/v1/sessions/:id/diff-stats` endpoint to return 400 for invalid IDs
+
 ## [1.9.1] - 2026-02-11
 
 ### Added

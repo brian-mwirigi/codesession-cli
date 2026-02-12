@@ -39,18 +39,18 @@ async function captureScreenshots() {
     const page = await browser.newPage();
 
     // Wait for network to be idle
-    page.setDefaultNavigationTimeout(60000);
+    page.setDefaultNavigationTimeout(90000);
     page.setDefaultTimeout(30000);
 
     // ========================================
     // 1. Dashboard Overview
     // ========================================
     console.log('📸 Capturing dashboard overview...');
-    await page.goto(`${BASE_URL}`, { waitUntil: 'networkidle0' });
+    await page.goto(`${BASE_URL}`, { waitUntil: 'networkidle0', timeout: 90000 });
 
     // Wait for charts to render
     await page.waitForSelector('.card', { timeout: 10000 });
-    await new Promise(resolve => setTimeout(resolve, 2000)); // Extra wait for charts
+    await new Promise(resolve => setTimeout(resolve, 3000)); // Extra wait for charts
 
     await page.screenshot({
       path: path.join(OUTPUT_DIR, 'dashboard-overview.png'),
@@ -64,15 +64,32 @@ async function captureScreenshots() {
     console.log('\n📸 Capturing session detail...');
 
     // Navigate to sessions page first
-    await page.goto(`${BASE_URL}/sessions`, { waitUntil: 'networkidle0' });
+    await page.goto(`${BASE_URL}/sessions`, { 
+      waitUntil: 'domcontentloaded', 
+      timeout: 90000 
+    });
+    await new Promise(resolve => setTimeout(resolve, 3000)); // Wait for page to fully load
     await page.waitForSelector('table tbody tr', { timeout: 10000 });
 
     // Click on the first session (most recent)
     const firstSessionRow = await page.$('table tbody tr');
     if (firstSessionRow) {
       await firstSessionRow.click();
-      await page.waitForNavigation({ waitUntil: 'networkidle0' });
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for timeline
+      
+      // Increased timeout and changed wait condition
+      await page.waitForNavigation({ 
+        waitUntil: 'domcontentloaded', // Less strict than networkidle0
+        timeout: 90000 
+      });
+      
+      await new Promise(resolve => setTimeout(resolve, 5000)); // Give it 5 seconds to fully load
+      
+      // Wait for specific content to ensure page is ready
+      try {
+        await page.waitForSelector('.card, table, h1, h2', { timeout: 10000 });
+      } catch (e) {
+        console.log('  ⚠ Warning: Expected elements not found, continuing anyway...');
+      }
 
       await page.screenshot({
         path: path.join(OUTPUT_DIR, 'session-detail.png'),
@@ -100,7 +117,7 @@ async function captureScreenshots() {
         }
       });
 
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
       // Take screenshot of just the AI usage section
       const aiSection = await page.$('table');
@@ -119,7 +136,11 @@ async function captureScreenshots() {
     // ========================================
     console.log('\n📸 Capturing cost charts...');
 
-    await page.goto(`${BASE_URL}/models`, { waitUntil: 'networkidle0' });
+    await page.goto(`${BASE_URL}/models`, { 
+      waitUntil: 'domcontentloaded', 
+      timeout: 90000 
+    });
+    await new Promise(resolve => setTimeout(resolve, 3000)); // Wait for page load
     await page.waitForSelector('.card', { timeout: 10000 });
     await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for charts
 
@@ -134,7 +155,11 @@ async function captureScreenshots() {
     // ========================================
     console.log('\n📸 Capturing insights page...');
 
-    await page.goto(`${BASE_URL}/insights`, { waitUntil: 'networkidle0' });
+    await page.goto(`${BASE_URL}/insights`, { 
+      waitUntil: 'domcontentloaded', 
+      timeout: 90000 
+    });
+    await new Promise(resolve => setTimeout(resolve, 3000)); // Wait for page load
     await page.waitForSelector('.card', { timeout: 10000 });
     await new Promise(resolve => setTimeout(resolve, 2000));
 

@@ -507,20 +507,21 @@ program
       promptTokens: promptTk || undefined,
       completionTokens: completionTk || undefined,
       cost,
-      agentName: options.agent || undefined,
+      agentName: options.agent || process.env.CODESESSION_AGENT_NAME || undefined,
       timestamp: new Date().toISOString(),
     });
 
     // Re-read the updated session
     const updated = getSession(session.id!);
+    const resolvedAgent = options.agent || process.env.CODESESSION_AGENT_NAME || undefined;
     if (options.json) {
       console.log(JSON.stringify(jsonWrap({
-        logged: { provider: options.provider, model: options.model, tokens: totalTokens, promptTokens: promptTk || undefined, completionTokens: completionTk || undefined, cost, agentName: options.agent || undefined },
+        logged: { provider: options.provider, model: options.model, tokens: totalTokens, promptTokens: promptTk || undefined, completionTokens: completionTk || undefined, cost, agentName: resolvedAgent },
         pricing: pricingInfo,
         session: { id: session.id, aiCost: updated?.aiCost || 0, aiTokens: updated?.aiTokens || 0 },
       })));
     } else {
-      const agentStr = options.agent ? ` (${options.agent})` : '';
+      const agentStr = resolvedAgent ? ` (${resolvedAgent})` : '';
       console.log(chalk.green(`\nLogged: ${totalTokens.toLocaleString()} tokens, ${formatCost(cost)}${agentStr}`));
       console.log(chalk.gray(`  Session total: ${(updated?.aiTokens || 0).toLocaleString()} tokens, ${formatCost(updated?.aiCost || 0)}\n`));
     }

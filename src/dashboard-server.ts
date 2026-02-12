@@ -212,6 +212,9 @@ function buildApiRouter(): Router {
   router.get('/sessions/:id/diff-stats', async (req, res) => {
     try {
       const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: 'Invalid session ID' });
+      }
       const session = getSession(id);
       if (!session) return res.status(404).json({ error: 'Session not found' });
       if (!session.gitRoot || !session.startGitHead) {

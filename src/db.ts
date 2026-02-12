@@ -322,14 +322,16 @@ export function exportSessions(format: 'json' | 'csv', limit?: number): string {
   }
 
   // CSV
-  const header = 'id,name,status,startTime,endTime,duration,filesChanged,commits,aiTokens,aiCost,notes';
+  const header = 'id,name,status,startTime,endTime,duration,filesChanged,commits,aiTokens,aiCost,agents,notes';
   const rows = sessions.map((s) => {
     // Escape CSV special characters: quotes and newlines
     const escapeCsv = (str: string) => str.replace(/"/g, '""').replace(/\n/g, '\\n').replace(/\r/g, '\\r');
+    const aiUsage = getAIUsage(s.id!);
+    const agents = [...new Set(aiUsage.map(a => a.agentName).filter(Boolean))].join('; ');
     return [
       s.id, `"${escapeCsv(s.name || '')}"`, s.status, s.startTime, s.endTime || '',
       s.duration || '', s.filesChanged, s.commits, s.aiTokens,
-      s.aiCost, `"${escapeCsv(s.notes || '')}"`
+      s.aiCost, `"${escapeCsv(agents)}"`, `"${escapeCsv(s.notes || '')}"`
     ].join(',');
   });
   return [header, ...rows].join('\n');
