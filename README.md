@@ -673,4 +673,8 @@ Built by [Brian Mwirigi](https://github.com/brian-mwirigi)
 
 ---
 
-**Know what your agents cost. Ship with confidence.**
+<div align="center">
+  <p><strong>Know what your agents cost. Ship with confidence.</strong></p>
+  <p>If codesession-cli is useful to you, consider giving it a <a href="https://github.com/brian-mwirigi/codesession-cli">star on GitHub</a> -- it helps others discover the tool.</p>
+  <a href="https://github.com/brian-mwirigi/codesession-cli"><img src="https://img.shields.io/github/stars/brian-mwirigi/codesession-cli?style=social" alt="GitHub stars"></a>
+</div>
