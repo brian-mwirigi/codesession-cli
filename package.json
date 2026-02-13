@@ -1,6 +1,6 @@
 {
   "name": "codesession-cli",
-  "version": "1.9.7",
+  "version": "1.9.8",
   "description": "Track AI agent & coding session costs — files, commits, tokens. Works with OpenClaw, Claude Code, and any AI agent. Includes programmatic API with budget enforcement.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -28,7 +28,6 @@
     "dev:dashboard": "npx vite --config dashboard/vite.config.ts",
     "start": "node dist/index.js",
     "prepare": "npm run build",
-    "postinstall": "node scripts/postinstall.js || true",
     "screenshots": "node scripts/capture-screenshots.js",
     "screenshots:setup": "bash scripts/setup-demo-data.sh || scripts\\setup-demo-data.bat"
   },
@@ -63,7 +62,6 @@
   "files": [
     "dist",
     "skills",
-    "scripts/postinstall.js",
     "README.md",
     "LICENSE"
   ],
