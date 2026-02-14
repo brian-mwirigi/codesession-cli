@@ -5,8 +5,9 @@ import SessionList from './components/SessionList';
 import SessionDetail from './components/SessionDetail';
 import ModelBreakdown from './components/ModelBreakdown';
 import Insights from './components/Insights';
+import Alerts from './components/Alerts';
 
-export type Page = 'overview' | 'sessions' | 'models' | 'insights';
+export type Page = 'overview' | 'sessions' | 'models' | 'insights' | 'alerts';
 
 // ── URL-based routing (no react-router needed) ─────────────
 
@@ -19,6 +20,7 @@ function parseRoute(): { page: Page; sessionId: number | null } {
   if (path === '/sessions') return { page: 'sessions', sessionId: null };
   if (path === '/models') return { page: 'models', sessionId: null };
   if (path === '/insights') return { page: 'insights', sessionId: null };
+  if (path === '/alerts') return { page: 'alerts', sessionId: null };
   return { page: 'overview', sessionId: null };
 }
 
@@ -73,6 +75,8 @@ export default function App() {
           <SessionList onSessionClick={selectSession} />
         ) : page === 'insights' ? (
           <Insights />
+        ) : page === 'alerts' ? (
+          <Alerts />
         ) : (
           <ModelBreakdown />
         )}

@@ -25,6 +25,17 @@ export async function fetchApi<T>(path: string, params?: Record<string, string>)
   return res.json();
 }
 
+export async function postApi<T>(path: string): Promise<T> {
+  const cleanPath = path.replace(/^\/api\//, '/');
+  const url = `${API_BASE}${cleanPath}`;
+  const token = getToken();
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(url, { method: 'POST', headers });
+  if (!res.ok) throw new Error(`API ${res.status}`);
+  return res.json();
+}
+
 export async function fetchDiff(sessionId: number, filePath?: string): Promise<string> {
   const token = getToken();
   const params = new URLSearchParams();

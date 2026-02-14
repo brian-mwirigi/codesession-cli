@@ -5,6 +5,34 @@ All notable changes to codesession-cli will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-02-14
+
+### Added
+- **Alerts Dashboard** — Dedicated Alerts page in the web dashboard with spend threshold monitoring
+  - Set daily, total, and per-session cost limits with visual progress bars
+  - ON/OFF toggle per rule with status dots (green/red/gray)
+  - Alarm mode: browser notifications + Web Audio sound when budgets are exceeded
+  - Sessions over limit table
+  - Status badges showing active rules, alarm count, and triggered alerts
+- **Start Fresh** — Reset all session data from the dashboard with one click
+  - "Start Fresh" button in sidebar with confirmation modal
+  - Clears all sessions, AI usage, file changes, commits, and alert thresholds
+  - Properly cleans up active session watchers and git pollers before clearing
+  - `POST /api/reset` endpoint for programmatic reset
+- **Insights Dashboard** — New analytics page with file hotspots, activity heatmap, project breakdown, and pricing table
+
+### Fixed
+- **AudioContext Autoplay Policy** — Added `ctx.resume()` for suspended state to fix silent alarms on first interaction
+- **Web Audio Scheduling** — Added `setValueAtTime` before `exponentialRampToValueAtTime` for reliable alarm sound
+- **Alarm on Page Load** — Alarms no longer fire when navigating to the Alerts page with existing exceeded thresholds (only NEW breaches trigger alarms)
+- **Null Reference in Alerts** — Fixed `firedRef.current.delete()` crash when threshold is changed before initial data load
+- **Active Session Cleanup on Reset** — `clearAllData()` now properly stops file watchers and git pollers for active sessions before deleting records
+
+### Changed
+- Dashboard sidebar now includes Alerts and Insights navigation items
+- Alerts configuration migrated from inline Overview controls to dedicated page
+- Threshold storage format upgraded from plain numbers to objects with alarm flag (backward-compatible migration included)
+
 ## [1.9.4] - 2026-02-12
 
 ### Fixed
@@ -100,4 +128,4 @@ Multiple sessions across different repos now work flawlessly.
 
 ---
 
-**Full Changelog**: https://github.com/brian-mwirigi/codesession-cli/compare/v1.8.7...v1.9.0
+**Full Changelog**: https://github.com/brian-mwirigi/codesession-cli/compare/v1.9.4...v2.0.0

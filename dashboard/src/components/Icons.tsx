@@ -207,6 +207,22 @@ export function IconGitBranch(p: IconProps) {
   ], p);
 }
 
+export function IconBell(p: IconProps) {
+  return svgMulti([
+    'M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9',
+    'M13.73 21a2 2 0 0 1-3.46 0',
+  ], p);
+}
+
+export function IconRefreshCw(p: IconProps) {
+  return svgMulti([
+    'M23 4v6h-6',
+    'M1 20v-6h6',
+    'M3.51 9a9 9 0 0 1 14.85-3.36L23 10',
+    'M20.49 15a9 9 0 0 1-14.85 3.36L1 14',
+  ], p);
+}
+
 export function IconCpu(p: IconProps) {
   return svgMulti([
     'M18 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z',

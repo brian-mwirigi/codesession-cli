@@ -379,6 +379,24 @@ function mapSession(row: any): Session {
   };
 }
 
+export function clearAllData(): void {
+  // Clean up watchers/pollers for any active sessions before deleting
+  const active = getActiveSessions();
+  for (const s of active) {
+    cleanupGit(s.id!);
+    cleanupWatcher(s.id!);
+  }
+
+  const transaction = db.transaction(() => {
+    db.prepare('DELETE FROM session_notes').run();
+    db.prepare('DELETE FROM ai_usage').run();
+    db.prepare('DELETE FROM file_changes').run();
+    db.prepare('DELETE FROM commits').run();
+    db.prepare('DELETE FROM sessions').run();
+  });
+  transaction();
+}
+
 export function closeDb(): void {
   db.close();
 }

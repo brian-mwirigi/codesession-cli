@@ -23,20 +23,12 @@
 
 ---
 
-## What's New in v1.9.1
+## What's New in v2.0.0
 
-**Agent Name Tracking** - Differentiate between agents in multi-agent workflows:
-
-- **Track Agent Names** - `--agent "Code Review Bot"` flag for cost attribution
-- **Dashboard Column** - New "Agent" column in AI usage table
-- **Multi-Agent Support** - Perfect for CrewAI, AutoGen, LangChain workflows
-- **Cost Attribution** - Know which agent is spending what
-
-**Also in v1.9.0:**
-- **Concurrent Sessions** - Multiple agents/repos work flawlessly (fixed 4 race conditions)
-- **Data Integrity** - Atomic transactions prevent corruption (fixed 5 high-severity bugs)
-- **Resource Management** - No memory leaks or orphaned timers (fixed 4 medium bugs)
-- **GitHub PR-Style Diffs** - Enhanced file viewer with visual diff bars & stats
+- **Alerts Dashboard** — Set daily, total, and per-session cost limits with progress bars, alarm mode (sound + browser notifications), and status badges
+- **Start Fresh** — Reset all session data from the dashboard with a confirmation modal
+- **Insights Page** — File hotspots, activity heatmap, project breakdown, pricing table
+- **Bug Fixes** — Fixed alarm autoplay policy, null ref crash, active session cleanup on reset
 
 [Full Changelog →](https://github.com/brian-mwirigi/codesession-cli/blob/main/CHANGELOG.md)
 
@@ -207,7 +199,7 @@ See all your session data in a browser:
 cs dashboard
 ```
 
-Opens a local web app at `http://localhost:3737` with four pages:
+Opens a local web app at `http://localhost:3737` with five pages:
 
 ### Overview
 - KPI cards: total sessions, cost, time, avg duration, avg cost, files changed, commits
@@ -235,9 +227,21 @@ Opens a local web app at `http://localhost:3737` with four pages:
 
 ### Insights
 - **File Hotspots** — most frequently changed files across all sessions with churn bars
-- **Activity Heatmap** — sessions by day-of-week and hour (7×24 grid)
+- **Activity Heatmap** — sessions by day-of-week and hour (7x24 grid)
 - **Projects** — per-project cost, sessions, duration, files, commits, tokens; cost bar chart
 - **Pricing** — model pricing table (input/output per 1M tokens)
+
+### Alerts
+- Set daily, total, and per-session cost thresholds
+- Visual progress bars showing spend vs limit
+- Alarm mode: browser notifications + sound when budgets are exceeded
+- Status badges: active rules, alarm count, triggered alerts
+- Sessions over limit table
+
+### Start Fresh
+- "Start Fresh" button in the sidebar to reset all session data
+- Confirmation modal listing everything that will be deleted
+- Clears sessions, AI usage, file changes, commits, and alert thresholds
 
 Options:
 - `--port <port>` -- custom port (default: 3737)
@@ -569,7 +573,7 @@ Session: Build user auth
 }
 ```
 
-> All `--json` responses include `schemaVersion` (currently `1`) and `codesessionVersion` (e.g. `"1.7.0"`) at the top level.
+> All `--json` responses include `schemaVersion` (currently `1`) and `codesessionVersion` (e.g. `"2.0.0"`) at the top level.
 
 ## License
 
@@ -586,7 +590,7 @@ All `--json` outputs include metadata fields for forward compatibility:
 ```json
 {
   "schemaVersion": 1,
-  "codesessionVersion": "1.7.0",
+  "codesessionVersion": "2.0.0",
   ...
 }
 ```
@@ -609,7 +613,7 @@ JSON errors always follow this shape:
 ```json
 {
   "schemaVersion": 1,
-  "codesessionVersion": "1.5.0",
+  "codesessionVersion": "2.0.0",
   "error": {
     "code": "no_active_session",
     "message": "No active session"

@@ -12,7 +12,7 @@ import {
   exportSessions, loadPricing,
   getProviderBreakdown, getFileHotspots, getActivityHeatmap,
   getDailyTokens, getCostVelocity, getProjectBreakdown, getTokenRatios,
-  getSession, getCommits,
+  getSession, getCommits, clearAllData,
 } from './db';
 import { getGitDiff, getCommitDiff, getGitDiffStats } from './git';
 
@@ -353,6 +353,15 @@ function buildApiRouter(): Router {
     }
   });
 
+  router.post('/reset', (_req, res) => {
+    try {
+      clearAllData();
+      res.json({ ok: true, message: 'All session data cleared' });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   return router;
 }
 
@@ -469,6 +478,7 @@ export function startDashboard(options: DashboardOptions = {}): void {
   app.get('/sessions/:id', sendSpa);
   app.get('/models', sendSpa);
   app.get('/insights', sendSpa);
+  app.get('/alerts', sendSpa);
 
   // ── Port conflict handling & startup ──────────────────────
 

@@ -1,6 +1,6 @@
 ---
 name: codesession
-description: Track agent session costs, file changes, and git commits with codesession-cli. Enforces budget limits and provides detailed session analytics with a web dashboard. v1.9.6 - Agent name tracking, concurrent sessions, web dashboard.
+description: Track agent session costs, file changes, and git commits with codesession-cli. Enforces budget limits and provides detailed session analytics with a web dashboard. v2.0.0 - Alerts dashboard, start fresh, insights page.
 metadata: {"openclaw": {"homepage": "https://github.com/brian-mwirigi/codesession-cli", "requires": {"bins": ["cs"]}, "install": [{"id": "npm", "kind": "node", "package": "codesession-cli", "bins": ["cs"], "label": "Install codesession-cli (npm)"}]}}
 ---
 
@@ -8,7 +8,7 @@ metadata: {"openclaw": {"homepage": "https://github.com/brian-mwirigi/codesessio
 
 Track agent session costs, file changes, and git commits. Enforces budget limits and provides detailed session analytics with a full web dashboard.
 
-**Latest: v1.9.6** - Agent name tracking, concurrent session support, web dashboard with analytics.
+**Latest: v2.0.0** - Alerts dashboard, start fresh, insights page, alarm mode.
 
 📦 [npm](https://www.npmjs.com/package/codesession-cli) • ⭐ [GitHub](https://github.com/brian-mwirigi/codesession-cli) • 📝 [Changelog](https://github.com/brian-mwirigi/codesession-cli/blob/main/CHANGELOG.md)
 
@@ -104,6 +104,8 @@ The dashboard shows:
 - **Sessions** — searchable/sortable table, per-session detail with timeline, files, commits, AI calls, notes
 - **Models** — per-model & per-provider cost breakdown, token ratios, usage charts
 - **Insights** — file hotspots, activity heatmap, project breakdown, pricing table
+- **Alerts** — set daily/total/per-session cost thresholds with alarm mode (sound + browser notifications)
+- **Start Fresh** — reset all session data from the sidebar
 
 ### View session details
 ```bash
@@ -189,7 +191,7 @@ npm view codesession-cli version  # latest on npm
 ```
 
 If the installed version is behind, notify the user:
-> "codesession-cli update available: v1.8.4 -> v1.9.0. Run `npm install -g codesession-cli` to update."
+> "codesession-cli update available: v1.9.4 -> v2.0.0. Run `npm install -g codesession-cli` to update."
 
 Don't block the workflow for an update — just inform and continue.
 
