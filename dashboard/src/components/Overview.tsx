@@ -8,6 +8,62 @@ import { useInterval } from '../hooks/useInterval';
 import { formatCost, formatDuration, formatTokens, formatDay } from '../utils/format';
 import { IconSessions, IconDollar, IconClock, IconTrendUp, IconCircleDot, IconFile, IconGitCommit } from './Icons';
 
+// ── Spend Threshold Alerts ──────────────────────────────────
+
+interface Thresholds {
+  dailyCost: number;
+  totalCost: number;
+  sessionCost: number;
+}
+
+const THRESHOLDS_KEY = 'cs-spend-thresholds';
+
+function loadThresholds(): Thresholds {
+  try {
+    const raw = localStorage.getItem(THRESHOLDS_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return { dailyCost: 0, totalCost: 0, sessionCost: 0 };
+}
+
+function saveThresholds(t: Thresholds) {
+  localStorage.setItem(THRESHOLDS_KEY, JSON.stringify(t));
+}
+
+interface Alert {
+  level: 'warning' | 'danger';
+  message: string;
+}
+
+function computeAlerts(stats: Stats, daily: DailyCost[], top: TopSession[], thresholds: Thresholds): Alert[] {
+  const alerts: Alert[] = [];
+  if (thresholds.totalCost > 0 && stats.totalAICost >= thresholds.totalCost) {
+    alerts.push({
+      level: stats.totalAICost >= thresholds.totalCost * 1.5 ? 'danger' : 'warning',
+      message: `Total spend ${formatCost(stats.totalAICost)} has exceeded your ${formatCost(thresholds.totalCost)} threshold`,
+    });
+  }
+  if (thresholds.dailyCost > 0 && daily.length > 0) {
+    const today = daily[daily.length - 1];
+    if (today && today.cost >= thresholds.dailyCost) {
+      alerts.push({
+        level: today.cost >= thresholds.dailyCost * 1.5 ? 'danger' : 'warning',
+        message: `Today's spend ${formatCost(today.cost)} has exceeded your ${formatCost(thresholds.dailyCost)}/day threshold`,
+      });
+    }
+  }
+  if (thresholds.sessionCost > 0 && top.length > 0) {
+    const expensive = top.filter(s => s.aiCost >= thresholds.sessionCost);
+    if (expensive.length > 0) {
+      alerts.push({
+        level: 'warning',
+        message: `${expensive.length} session${expensive.length > 1 ? 's' : ''} exceeded your ${formatCost(thresholds.sessionCost)}/session threshold`,
+      });
+    }
+  }
+  return alerts;
+}
+
 interface Stats {
   totalSessions: number;
   totalTime: number;
@@ -59,6 +115,9 @@ export default function Overview({ onSessionClick }: Props) {
   const [dailyTokens, setDailyTokens] = useState<DailyToken[]>([]);
   const [top, setTop] = useState<TopSession[]>([]);
   const [velocity, setVelocity] = useState<CostVelocityItem[]>([]);
+  const [thresholds, setThresholds] = useState<Thresholds>(loadThresholds);
+  const [showThresholdConfig, setShowThresholdConfig] = useState(false);
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchAll();
@@ -81,12 +140,67 @@ export default function Overview({ onSessionClick }: Props) {
   const avgDailyCost = daily.length > 0 ? totalDailyCost / daily.length : 0;
   const projectedMonthly = avgDailyCost * 30;
 
+  const alerts = computeAlerts(stats, daily, top, thresholds);
+  const visibleAlerts = alerts.filter(a => !dismissed.has(a.message));
+
+  const updateThreshold = (key: keyof Thresholds, value: string) => {
+    const num = parseFloat(value) || 0;
+    const updated = { ...thresholds, [key]: num };
+    setThresholds(updated);
+    saveThresholds(updated);
+  };
+
   return (
     <div className="page">
       <div className="page-header">
-        <h1 className="page-title">Overview</h1>
-        <div className="page-subtitle">Aggregate metrics across all completed sessions</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h1 className="page-title">Overview</h1>
+            <div className="page-subtitle">Aggregate metrics across all completed sessions</div>
+          </div>
+          <button className="btn-threshold-config" onClick={() => setShowThresholdConfig(!showThresholdConfig)}>
+            Alerts {thresholds.dailyCost > 0 || thresholds.totalCost > 0 || thresholds.sessionCost > 0 ? '(on)' : '(off)'}
+          </button>
+        </div>
       </div>
+
+      {/* Threshold config */}
+      {showThresholdConfig && (
+        <div className="card alert-config" style={{ marginBottom: 12 }}>
+          <div className="card-header"><div className="card-title">Spend Alert Thresholds</div></div>
+          <div className="card-body">
+            <div className="threshold-grid">
+              <label>Daily spend limit</label>
+              <div className="threshold-input">
+                <span>$</span>
+                <input type="number" min="0" step="0.5" value={thresholds.dailyCost || ''} placeholder="off"
+                  onChange={e => updateThreshold('dailyCost', e.target.value)} />
+              </div>
+              <label>Total spend limit</label>
+              <div className="threshold-input">
+                <span>$</span>
+                <input type="number" min="0" step="1" value={thresholds.totalCost || ''} placeholder="off"
+                  onChange={e => updateThreshold('totalCost', e.target.value)} />
+              </div>
+              <label>Per-session limit</label>
+              <div className="threshold-input">
+                <span>$</span>
+                <input type="number" min="0" step="0.5" value={thresholds.sessionCost || ''} placeholder="off"
+                  onChange={e => updateThreshold('sessionCost', e.target.value)} />
+              </div>
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 8 }}>Set to 0 or clear to disable. Thresholds are stored locally in your browser.</div>
+          </div>
+        </div>
+      )}
+
+      {/* Spend alerts */}
+      {visibleAlerts.map((alert) => (
+        <div key={alert.message} className={`alert-banner alert-banner--${alert.level}`}>
+          <span>{alert.message}</span>
+          <button className="alert-dismiss" onClick={() => setDismissed(prev => new Set(prev).add(alert.message))}>Dismiss</button>
+        </div>
+      ))}
 
       {/* All KPIs */}
       <div className="stat-row">
