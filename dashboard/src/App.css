@@ -1712,3 +1712,81 @@ body {
   background: #dc2626;
   border-color: #dc2626;
 }
+
+/* ── Donate page ──────────────────────────────────── */
+
+.donate-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+}
+
+.donate-card {
+  margin-bottom: 0;
+}
+
+.donate-card-inner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+}
+
+.donate-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius);
+  background: var(--bg-tertiary);
+}
+
+.donate-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.donate-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 2px;
+}
+
+.donate-desc {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin: 0;
+}
+
+.donate-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.donate-btn:hover {
+  background: var(--border);
+}
+
+.donate-btn--static {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.donate-btn--static:hover {
+  background: var(--bg-tertiary);
+}

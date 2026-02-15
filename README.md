@@ -11,9 +11,11 @@
 
   <p><em>Track agent runs • Monitor files • Log commits • Enforce budgets</em></p>
 
-  <p>If this tool saves you money, consider <a href="https://github.com/brian-mwirigi/codesession-cli">giving it a star</a> -- it helps others discover it.</p>
+  <p>If this tool saves you money, consider <a href="https://github.com/sponsors/brian-mwirigi">sponsoring</a> or <a href="https://github.com/brian-mwirigi/codesession-cli">giving it a star</a></p>
 
   <p>
+    <a href="https://github.com/sponsors/brian-mwirigi"><img src="https://img.shields.io/badge/Sponsor-%E2%9D%A4-pink?logo=github" alt="Sponsor"></a>
+    <a href="https://buymeacoffee.com/brianmwirigi"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-%E2%98%95-yellow?logo=buymeacoffee&logoColor=black" alt="Buy Me a Coffee"></a>
     <a href="https://www.npmjs.com/package/codesession-cli"> npm</a> •
     <a href="https://github.com/brian-mwirigi/codesession-cli"> GitHub</a> •
     <a href="https://github.com/brian-mwirigi/codesession-cli/blob/main/CHANGELOG.md"> Changelog</a> •
@@ -692,6 +694,10 @@ Built by [Brian Mwirigi](https://github.com/brian-mwirigi)
 
 <div align="center">
   <p><strong>Know what your agents cost. Ship with confidence.</strong></p>
-  <p>If codesession-cli is useful to you, consider giving it a <a href="https://github.com/brian-mwirigi/codesession-cli">star on GitHub</a> -- it helps others discover the tool.</p>
-  <a href="https://github.com/brian-mwirigi/codesession-cli"><img src="https://img.shields.io/github/stars/brian-mwirigi/codesession-cli?style=social" alt="GitHub stars"></a>
+  <p>If codesession-cli saves you money, consider <a href="https://github.com/sponsors/brian-mwirigi">sponsoring</a>, <a href="https://buymeacoffee.com/brianmwirigi">buying me a coffee</a>, or giving it a <a href="https://github.com/brian-mwirigi/codesession-cli">star</a></p>
+  <p>
+    <a href="https://github.com/sponsors/brian-mwirigi"><img src="https://img.shields.io/badge/Sponsor-%E2%9D%A4-pink?logo=github" alt="Sponsor"></a>
+    <a href="https://buymeacoffee.com/brianmwirigi"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-%E2%98%95-yellow?logo=buymeacoffee&logoColor=black" alt="Buy Me a Coffee"></a>
+    <a href="https://github.com/brian-mwirigi/codesession-cli"><img src="https://img.shields.io/github/stars/brian-mwirigi/codesession-cli?style=social" alt="GitHub stars"></a>
+  </p>
 </div>
