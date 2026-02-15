@@ -720,13 +720,23 @@ program
     const fs = require('fs');
     const path = require('path');
     const os = require('os');
+    const tty = require('tty');
+
+    // Bail if stdin is a TTY (user ran `cs auto-log` manually without piping)
+    try {
+      if (tty.isatty(0)) {
+        console.error('auto-log expects piped JSON from a Claude Code hook. See: cs auto-log --help');
+        process.exit(1);
+      }
+    } catch {
+      // isatty can throw in some environments — proceed to read stdin anyway
+    }
 
     // Read hook input from stdin
     let raw = '';
     try {
       raw = fs.readFileSync(process.stdin.fd, 'utf8');
     } catch {
-      // No stdin — nothing to do
       process.exit(0);
     }
 
@@ -742,20 +752,31 @@ program
     const transcriptPath = hookInput.transcript_path;
     const sessionId = hookInput.session_id;
 
-    if (!transcriptPath || !fs.existsSync(transcriptPath)) {
-      process.exit(0);
-    }
+    if (!transcriptPath || !sessionId) process.exit(0);
+    if (!fs.existsSync(transcriptPath)) process.exit(0);
+
+    // Must have an active codesession — if not, exit WITHOUT saving position
+    // so tokens aren't lost (they'll be picked up on the next call after cs start)
+    const session = getActiveSession();
+    if (!session) process.exit(0);
 
     // Track position so we don't double-count across multiple Stop events
     const posDir = path.join(os.tmpdir(), 'codesession-autolog');
     try { fs.mkdirSync(posDir, { recursive: true }); } catch {}
     const posFile = path.join(posDir, `${sessionId}.pos`);
-    const lastPos = fs.existsSync(posFile) ? parseInt(fs.readFileSync(posFile, 'utf8'), 10) || 0 : 0;
+    let lastPos = 0;
+    if (fs.existsSync(posFile)) {
+      const stored = parseInt(fs.readFileSync(posFile, 'utf8'), 10);
+      if (!isNaN(stored) && stored >= 0) lastPos = stored;
+    }
 
     let transcript = fs.readFileSync(transcriptPath, 'utf8');
     // Strip BOM if present
     if (transcript.charCodeAt(0) === 0xFEFF) transcript = transcript.slice(1);
     const lines = transcript.split('\n').filter((l: string) => l.trim());
+
+    // If transcript was truncated/reset and is now shorter than our position, reset
+    if (lastPos > lines.length) lastPos = 0;
 
     if (lines.length <= lastPos) process.exit(0);
 
@@ -766,7 +787,6 @@ program
     for (const line of newLines) {
       try {
         const msg = JSON.parse(line);
-        // Estimate character count from message content
         const content = typeof msg.content === 'string'
           ? msg.content
           : JSON.stringify(msg.content || msg.message || '');
@@ -781,19 +801,17 @@ program
       }
     }
 
-    // Save new position
-    fs.writeFileSync(posFile, String(lines.length));
+    // Estimate tokens (roughly 1 token per 4 characters)
+    const promptTokens = Math.ceil(promptChars / 4);
+    const completionTokens = Math.ceil(completionChars / 4);
+    const totalTokens = promptTokens + completionTokens;
 
-    // Rough estimate: ~1 token per 4 characters
-    const promptTokens = Math.max(1, Math.ceil(promptChars / 4));
-    const completionTokens = Math.max(1, Math.ceil(completionChars / 4));
-
-    // Skip if negligible
-    if (promptTokens + completionTokens < 20) process.exit(0);
-
-    // Find active session
-    const session = getActiveSession();
-    if (!session) process.exit(0);
+    // Skip if negligible (fewer than 10 estimated tokens)
+    if (totalTokens < 10) {
+      // Still save position — these lines were trivial (e.g., empty system messages)
+      fs.writeFileSync(posFile, String(lines.length));
+      process.exit(0);
+    }
 
     // Calculate cost
     const auto = estimateCost(options.model, promptTokens, completionTokens, options.provider);
@@ -803,13 +821,16 @@ program
       sessionId: session.id!,
       provider: options.provider,
       model: options.model,
-      tokens: promptTokens + completionTokens,
-      promptTokens,
-      completionTokens,
+      tokens: totalTokens,
+      promptTokens: promptTokens || undefined,
+      completionTokens: completionTokens || undefined,
       cost,
       agentName: options.agent || process.env.CODESESSION_AGENT_NAME || 'Claude Code',
       timestamp: new Date().toISOString(),
     });
+
+    // Only save position AFTER successful log — prevents token loss
+    fs.writeFileSync(posFile, String(lines.length));
 
     // Output JSON for the hook
     const updated = getSession(session.id!);
