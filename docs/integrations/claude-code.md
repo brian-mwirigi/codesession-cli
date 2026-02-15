@@ -1,17 +1,17 @@
 # Claude Code + codesession-cli
 
-Track what your Claude Code sessions actually cost — automatically or manually.
+Track what your Claude Code sessions actually cost — fully automatic.
 
 ## Install
 
 ```bash
 npm install -g codesession-cli
-cs --version   # Should print 2.0.0
+cs --version   # Should print 2.0.0+
 ```
 
-## Option A: Automatic Tracking with Hooks
+## Fully Automatic Setup (Recommended)
 
-Claude Code hooks can start and end sessions automatically. Add this to your project's `.claude/settings.json` (or `~/.claude/settings.json` for global):
+Add this to `.claude/settings.json` (project-level) or `~/.claude/settings.json` (global):
 
 ```json
 {
@@ -33,6 +33,17 @@ Claude Code hooks can start and end sessions automatically. Add this to your pro
         "hooks": [
           {
             "type": "command",
+            "command": "cs auto-log --provider anthropic --model claude-sonnet-4 2>/dev/null || true",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
             "command": "cs end --json 2>/dev/null || true",
             "timeout": 10
           }
@@ -43,37 +54,52 @@ Claude Code hooks can start and end sessions automatically. Add this to your pro
 }
 ```
 
-This starts a codesession when Claude Code launches and ends it when Claude finishes responding. The `|| true` ensures tracking failures never block your actual work.
+That's it. Every Claude Code session now automatically:
 
-> **Windows users:** Replace `2>/dev/null` with `2>NUL` or wrap in a PowerShell call.
+1. **SessionStart** — creates a codesession tracking session
+2. **Stop** (after each Claude response) — reads the conversation transcript, estimates tokens, and logs AI usage with cost
+3. **SessionEnd** — closes the session, captures git commits and file changes
 
-### What gets tracked automatically
+The `|| true` on every command means tracking failures never block your work.
 
+> **Windows users:** Replace `2>/dev/null` with `2>NUL`, or use full paths like `C:\\Users\\you\\AppData\\Roaming\\npm\\cs.cmd`.
+
+### How `cs auto-log` works
+
+The `auto-log` command is designed specifically for Claude Code hooks:
+
+1. Reads the hook input JSON from stdin (which includes `transcript_path`)
+2. Parses the Claude Code conversation transcript (JSONL)
+3. Tracks its position so it only counts new messages since the last call
+4. Estimates token counts from the content (~1 token per 4 characters)
+5. Auto-calculates cost from the built-in pricing table
+6. Logs everything to the active codesession
+
+**Options:**
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--provider <name>` | `anthropic` | AI provider |
+| `--model <name>` | `claude-sonnet-4` | Model for pricing lookup |
+| `--agent <name>` | `Claude Code` | Agent name in the dashboard |
+
+Change `--model` to match what you're actually using:
+
+```json
+"command": "cs auto-log --provider anthropic --model claude-opus-4-6"
+```
+
+### What gets tracked
+
+- **AI tokens & cost** — estimated from transcript, auto-priced per model
 - **Git commits** — every commit Claude makes during the session
 - **Files changed** — all file modifications between start and end
 - **Duration** — how long the session lasted
-- **Working directory** — which project the session was in
+- **Agent name** — shows "Claude Code" in the dashboard for filtering
 
-### What you still need to log manually
+## Alternative: CLAUDE.md Instructions (No Hooks)
 
-AI token usage and cost require explicit logging because Claude Code doesn't expose token counts to hooks. Add this to your `CLAUDE.md`:
-
-```markdown
-## Cost Tracking
-
-After completing a task, log your AI usage:
-cs log-ai -p anthropic -m claude-opus-4-6 --prompt-tokens <tokens> --completion-tokens <tokens> --json
-```
-
-Or if you don't have exact token counts, log with a manual cost estimate:
-
-```markdown
-cs log-ai -p anthropic -m claude-opus-4-6 -t 50000 -c 0.75 --json
-```
-
-## Option B: CLAUDE.md Instructions (No Hooks)
-
-If you prefer not to use hooks, add tracking instructions directly to your project's `CLAUDE.md`:
+If you prefer Claude to handle tracking as part of its workflow, add to your `CLAUDE.md`:
 
 ```markdown
 ## Session Tracking
@@ -81,85 +107,57 @@ If you prefer not to use hooks, add tracking instructions directly to your proje
 At the start of every task:
 cs start "<task description>" --json --close-stale
 
+After each significant piece of work, log usage:
+cs log-ai -p anthropic -m claude-sonnet-4 --prompt-tokens <tokens> --completion-tokens <tokens> --agent "Claude Code" --json
+
 After completing the task:
 cs end -n "<what you did>" --json
-
-Add notes during long tasks:
-cs note "<what you're doing now>" --json
 ```
 
-Claude Code will follow these instructions and run the commands as part of its workflow.
+## Alternative: Manual CLI
 
-## Option C: Manual (Just Use the CLI)
-
-Run commands yourself alongside Claude Code:
+Run alongside Claude Code yourself:
 
 ```bash
-# Before starting work
 cs start "Refactor auth module" --close-stale
-
 # Claude Code does its thing...
-
-# When done
 cs end -n "Refactored auth, added tests"
-
-# Check the dashboard
 cs dashboard
 ```
 
 ## Viewing Your Data
 
 ```bash
-# Open the web dashboard
-cs dashboard
-
-# Quick terminal summary
-cs status --json
-
-# Export for spreadsheets
-cs export --format csv
+cs dashboard          # Web UI at localhost:3737
+cs status --json      # Quick terminal summary
+cs export --format csv  # Spreadsheet export
 ```
 
-The dashboard runs at `http://localhost:3737` and shows:
-- Cost trends and spend projections
-- Per-session breakdowns with file diffs and commit history
-- Model usage and cost-per-model analytics
-- File hotspots and activity heatmaps
-- Budget alerts with alarm mode
+The dashboard shows cost trends, per-session breakdowns, model analytics, file hotspots, activity heatmaps, and budget alerts.
 
 ## Multi-Agent Tracking
 
-If you use Claude Code alongside other agents (OpenClaw, custom scripts), use the `--agent` flag to differentiate:
-
-```bash
-cs log-ai -p anthropic -m claude-opus-4-6 -t 50000 -c 0.75 --agent "Claude Code" --json
-```
-
-The dashboard will show cost breakdowns per agent, so you can compare what each one costs.
+Using Claude Code alongside OpenClaw or other agents? The `--agent` flag on `auto-log` (default: "Claude Code") keeps everything separated in the dashboard. Each agent gets its own cost breakdown.
 
 ## Budget Alerts
 
 Set spend limits in the dashboard's Alerts page:
-
-```bash
-cs dashboard   # Navigate to Alerts tab
-```
-
-- **Daily limit** — cap total spend per day
-- **Per-session limit** — cap individual session costs
-- **Total limit** — cap cumulative all-time spend
-- **Alarm mode** — browser notification + sound when exceeded
+- **Daily / per-session / total** cost thresholds
+- **Alarm mode** — browser notification + actual sound when exceeded
 
 ## Troubleshooting
 
 **"session_active" error on start:**
-Use `--close-stale` to automatically close orphaned sessions from crashes.
+The `--close-stale` flag handles this automatically.
 
 **Hook not firing:**
-Check `claude --debug` for hook execution logs. Make sure `cs` is in your PATH.
+Run `claude --debug` to see hook execution logs. Make sure `cs` is in your PATH.
+
+**Token estimates seem off:**
+`auto-log` estimates ~1 token per 4 characters from the transcript. It's approximate but consistent. For exact tracking, use `cs log-ai` with real token counts from your API response.
 
 **Dashboard won't open:**
-Try `cs dashboard --port 4000` if port 3737 is busy, or `cs dashboard --no-open` and navigate manually.
+Try `cs dashboard --port 4000` or `cs dashboard --no-open` and navigate manually.
 
 **Windows path issues:**
-Use full paths in hooks: `"command": "C:\\Users\\you\\AppData\\Roaming\\npm\\cs.cmd start ..."`.
+Use full paths: `"command": "C:\\Users\\you\\AppData\\Roaming\\npm\\cs.cmd auto-log ..."`.
