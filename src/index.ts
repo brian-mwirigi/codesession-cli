@@ -61,6 +61,15 @@ function jsonWrap(data: Record<string, any>): Record<string, any> {
   return { schemaVersion: SCHEMA_VERSION, codesessionVersion: VERSION, ...data };
 }
 
+/** Resolve the active session for the current directory (supports parallel sessions). */
+async function resolveActiveSession() {
+  const cwd = process.cwd();
+  const gitRoot = await getGitRoot(cwd);
+  const scopeDir = gitRoot || cwd;
+  // Prefer session matching this directory/git root
+  return getActiveSessionForDir(scopeDir) || getActiveSession();
+}
+
 function sessionToJSON(session: any, extras?: { files?: any[]; commits?: any[]; aiUsage?: any[]; notes?: any[] }) {
   const obj: any = {
     schemaVersion: SCHEMA_VERSION,
@@ -181,22 +190,26 @@ program
           console.log(chalk.gray(`  Closed ${allActive.length} stale session(s)`));
         }
       } else if (!options.resume) {
-        // Default: error about active session
-        const active = allActive[0];
-        if (options.json) {
-          jsonError('session_active', `Session "${active.name}" is already active`, {
-            activeSession: active.name,
-            id: active.id,
-            hint: 'Use --resume to reattach or --close-stale to auto-close',
-          });
-        } else {
-          console.log(chalk.yellow(`\nSession "${active.name}" is already active (id: ${active.id}).`));
-          console.log(chalk.gray('  Options:'));
-          console.log(chalk.gray('    cs end              — end it manually'));
-          console.log(chalk.gray('    cs start --resume   — reuse session for this directory'));
-          console.log(chalk.gray('    cs start --close-stale — auto-close stale sessions\n'));
+        // Only block if there's already an active session for THIS directory
+        // Different directories/git roots can run parallel sessions
+        const sameDir = getActiveSessionForDir(scopeDir);
+        if (sameDir) {
+          if (options.json) {
+            jsonError('session_active', `Session "${sameDir.name}" is already active for this directory`, {
+              activeSession: sameDir.name,
+              id: sameDir.id,
+              hint: 'Use --resume to reattach or --close-stale to auto-close',
+            });
+          } else {
+            console.log(chalk.yellow(`\nSession "${sameDir.name}" is already active for this directory (id: ${sameDir.id}).`));
+            console.log(chalk.gray('  Options:'));
+            console.log(chalk.gray('    cs end              — end it manually'));
+            console.log(chalk.gray('    cs start --resume   — reuse session for this directory'));
+            console.log(chalk.gray('    cs start --close-stale — auto-close stale sessions\n'));
+          }
+          return;
         }
-        return;
+        // Different directory — allow parallel session
       }
     }
 
@@ -267,7 +280,7 @@ program
         return;
       }
     } else {
-      session = getActiveSession();
+      session = await resolveActiveSession();
     }
 
     if (!session) {
@@ -434,7 +447,7 @@ program
   .option('--agent <name>', 'Agent name (optional)')
   .option('-s, --session <id>', 'Target a specific session by ID', parseInt)
   .option('--json', 'Output JSON (for agents)')
-  .action((options) => {
+  .action(async (options) => {
     let session;
     if (options.session) {
       session = getSession(options.session);
@@ -447,7 +460,7 @@ program
         return;
       }
     } else {
-      session = getActiveSession();
+      session = await resolveActiveSession();
     }
     if (!session) {
       if (options.json) {
@@ -536,12 +549,12 @@ program
   .description('Show active session status')
   .option('-s, --session <id>', 'Show a specific session by ID', parseInt)
   .option('--json', 'Output JSON (for agents)')
-  .action((options) => {
+  .action(async (options) => {
     let session;
     if (options.session) {
       session = getSession(options.session);
     } else {
-      session = getActiveSession();
+      session = await resolveActiveSession();
     }
     if (!session) {
       if (options.json) {
@@ -640,7 +653,7 @@ program
   .argument('<message>', 'Note message')
   .option('-s, --session <id>', 'Target a specific session by ID', parseInt)
   .option('--json', 'Output JSON (for agents)')
-  .action((message: string, options) => {
+  .action(async (message: string, options) => {
     let session;
     if (options.session) {
       session = getSession(options.session);
@@ -653,7 +666,7 @@ program
         return;
       }
     } else {
-      session = getActiveSession();
+      session = await resolveActiveSession();
     }
     if (!session) {
       if (options.json) {
@@ -757,7 +770,7 @@ program
 
     // Must have an active codesession — if not, exit WITHOUT saving position
     // so tokens aren't lost (they'll be picked up on the next call after cs start)
-    const session = getActiveSession();
+    const session = await resolveActiveSession();
     if (!session) process.exit(0);
 
     // Track position so we don't double-count across multiple Stop events
