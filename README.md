@@ -5,6 +5,7 @@
   <p>
     <a href="https://www.npmjs.com/package/codesession-cli"><img src="https://img.shields.io/npm/v/codesession-cli?color=brightgreen" alt="npm version"></a>
     <a href="https://clawhub.ai/brian-mwirigi/codesession"><img src="https://img.shields.io/badge/OpenClaw-Skill-blue" alt="OpenClaw Skill"></a>
+    <a href="https://www.npmjs.com/package/codesession-cli"><img src="https://img.shields.io/npm/dm/codesession-cli?color=orange" alt="npm downloads"></a>
     <a href="https://github.com/brian-mwirigi/codesession-cli"><img src="https://img.shields.io/github/stars/brian-mwirigi/codesession-cli?style=social" alt="GitHub stars"></a>
     <a href="https://github.com/brian-mwirigi/codesession-cli/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/codesession-cli" alt="license"></a>
   </p>
