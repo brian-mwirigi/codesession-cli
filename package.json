@@ -1,13 +1,14 @@
 {
   "name": "codesession-cli",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Track AI agent & coding session costs — files, commits, tokens. Works with OpenClaw, Claude Code, and any AI agent. Includes programmatic API with budget enforcement.",
   "funding": "https://github.com/sponsors/brian-mwirigi",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
     "codesession": "./dist/index.js",
-    "cs": "./dist/index.js"
+    "cs": "./dist/index.js",
+    "codesession-mcp": "./dist/mcp-server.js"
   },
   "exports": {
     ".": {
@@ -51,6 +52,7 @@
   "author": "Brian Mwirigi",
   "license": "MIT",
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.26.0",
     "better-sqlite3": "^9.2.2",
     "chalk": "^4.1.2",
     "chokidar": "^3.5.3",
@@ -58,7 +60,8 @@
     "commander": "^11.1.0",
     "date-fns": "^3.0.6",
     "express": "^5.2.1",
-    "simple-git": "^3.22.0"
+    "simple-git": "^3.22.0",
+    "zod": "^4.3.6"
   },
   "files": [
     "dist",

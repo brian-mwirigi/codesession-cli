@@ -479,6 +479,7 @@ export function startDashboard(options: DashboardOptions = {}): void {
   app.get('/models', sendSpa);
   app.get('/insights', sendSpa);
   app.get('/alerts', sendSpa);
+  app.get('/donate', sendSpa);
 
   // ── Port conflict handling & startup ──────────────────────
 

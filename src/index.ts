@@ -721,6 +721,16 @@ program
     startDashboard({ port: parseInt(options.port), open: options.open, host: options.host, json: options.json });
   });
 
+// ─── MCP Server ──────────────────────────────────────────────
+
+program
+  .command('mcp')
+  .description('Start the codesession MCP server (for Claude Code integration)')
+  .action(async () => {
+    const { main } = await import('./mcp-server');
+    await main();
+  });
+
 // ─── Auto-Log (Claude Code Hook) ─────────────────────────────
 
 program
