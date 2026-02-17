@@ -1,0 +1,28 @@
+{
+  "name": "codesession-marketplace",
+  "owner": {
+    "name": "Brian Mwirigi",
+    "email": "brianmwirigi@users.noreply.github.com"
+  },
+  "metadata": {
+    "description": "Official codesession plugin marketplace — AI session cost tracking for Claude Code",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "codesession",
+      "source": "./plugin",
+      "description": "Track AI session costs, tokens, files, and commits. Includes MCP server with 8 tools, auto-pricing, budget enforcement, and web dashboard.",
+      "version": "2.2.0",
+      "author": {
+        "name": "Brian Mwirigi"
+      },
+      "homepage": "https://github.com/brian-mwirigi/codesession-cli",
+      "repository": "https://github.com/brian-mwirigi/codesession-cli",
+      "license": "MIT",
+      "keywords": ["ai", "cost-tracking", "session", "budget", "mcp", "observability"],
+      "category": "observability",
+      "tags": ["ai-cost", "token-tracking", "budget", "session-management"]
+    }
+  ]
+}

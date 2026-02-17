@@ -66,6 +66,8 @@
   "files": [
     "dist",
     "skills",
+    "plugin",
+    ".claude-plugin",
     "README.md",
     "LICENSE"
   ],

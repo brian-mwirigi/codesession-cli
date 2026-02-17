@@ -1,0 +1,22 @@
+{
+  "name": "codesession",
+  "description": "Track AI agent session costs, tokens, files, and commits. Budget enforcement, auto-pricing, and a full web dashboard.",
+  "version": "2.2.0",
+  "author": {
+    "name": "Brian Mwirigi",
+    "url": "https://github.com/brian-mwirigi"
+  },
+  "homepage": "https://github.com/brian-mwirigi/codesession-cli",
+  "repository": "https://github.com/brian-mwirigi/codesession-cli",
+  "license": "MIT",
+  "keywords": [
+    "ai",
+    "cost-tracking",
+    "token-tracking",
+    "session",
+    "budget",
+    "claude-code",
+    "mcp",
+    "observability"
+  ]
+}
