@@ -1,6 +1,6 @@
 <div align="center">
   <h1>codesession-cli</h1>
-  <p><strong>Track what your AI agents actually cost</strong></p>
+  <p><strong>Track what your AI agents actually cost — session tracker for Claude Code, OpenClaw, Codex, Cursor & more</strong></p>
 
   <p>
     <a href="https://www.npmjs.com/package/codesession-cli"><img src="https://img.shields.io/npm/v/codesession-cli?color=brightgreen" alt="npm version"></a>
@@ -702,3 +702,9 @@ Built by [Brian Mwirigi](https://github.com/brian-mwirigi)
     <a href="https://github.com/brian-mwirigi/codesession-cli"><img src="https://img.shields.io/github/stars/brian-mwirigi/codesession-cli?style=social" alt="GitHub stars"></a>
   </p>
 </div>
+
+---
+
+### Keywords
+
+codesession, codesession-cli, code session, code-session, cs cli, AI cost tracker, AI session tracker, AI agent cost tracking, token tracker, token counter, token usage monitor, LLM cost tracker, LLM spending, API cost monitor, Claude Code cost tracking, Claude Code plugin, Claude Code MCP, OpenClaw skill, Codex cost tracker, GPT cost tracker, Gemini cost tracker, DeepSeek cost tracker, Cursor AI costs, Windsurf AI costs, Cline AI costs, AI budget enforcement, AI spending dashboard, developer tools, devtools, agent observability, agent analytics, session management, coding session tracker, AI developer tools, MCP server, Model Context Protocol

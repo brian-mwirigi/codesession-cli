@@ -12,7 +12,7 @@
     {
       "name": "codesession",
       "source": "./plugin",
-      "description": "Track AI session costs, tokens, files, and commits. Includes MCP server with 8 tools, auto-pricing, budget enforcement, and web dashboard.",
+      "description": "codesession — Track AI agent session costs, tokens, files, and commits. Works with Claude Code, OpenClaw, Codex, GPT, Cursor, Windsurf, Cline. MCP server with 8 tools, auto-pricing, budget enforcement, web dashboard. Also known as codesession-cli, code session, code-session.",
       "version": "2.2.0",
       "author": {
         "name": "Brian Mwirigi"
@@ -20,9 +20,9 @@
       "homepage": "https://github.com/brian-mwirigi/codesession-cli",
       "repository": "https://github.com/brian-mwirigi/codesession-cli",
       "license": "MIT",
-      "keywords": ["ai", "cost-tracking", "session", "budget", "mcp", "observability"],
+      "keywords": ["codesession", "codesession-cli", "code-session", "ai", "ai-cost", "ai-agent", "cost-tracking", "token-tracking", "session-tracker", "budget", "claude-code", "claude", "openclaw", "codex", "gpt", "cursor", "windsurf", "cline", "mcp", "mcp-server", "observability", "dashboard", "devtools"],
       "category": "observability",
-      "tags": ["ai-cost", "token-tracking", "budget", "session-management"]
+      "tags": ["codesession", "ai-cost", "token-tracking", "budget", "session-management", "claude-code", "mcp-server", "agent-analytics", "developer-tools"]
     }
   ]
 }
