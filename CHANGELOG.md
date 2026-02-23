@@ -5,6 +5,48 @@ All notable changes to codesession-cli will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.0] - 2026-02-23
+
+### Added
+- **Pricing Tab** — Full pricing management UI in the web dashboard
+  - View all default model prices grouped by provider (Anthropic, OpenAI, Google, DeepSeek)
+  - Inline edit: click Edit → change input/output $/M token rates → Save
+  - Add custom models with provider, model name, input and output rates
+  - Reset individual models back to defaults with one click
+  - Changes persist in `~/.codesession/pricing.json`
+  - `GET /api/v1/pricing`, `POST /api/v1/pricing`, `DELETE /api/v1/pricing/:model` endpoints
+- **Claude Code Plugin** — Install codesession as a Claude Code plugin via one command
+  - `/codesession:status`, `/codesession:budget`, `/codesession:dashboard` slash commands
+  - Auto-invoked skill for session tracking during coding sessions
+  - `.mcp.json` for automatic MCP server setup with `npx codesession-cli mcp`
+- **Marketplace Listing** — Listed on [claudemarketplaces.com](https://claudemarketplaces.com)
+  - `.claude-plugin/marketplace.json` at repo root for auto-discovery
+- **Extended Model Pricing** — Added GPT-5, GPT-5 mini, GPT-5-codex, GPT-5.1-codex, GPT-5.2-codex to default pricing table
+- **SEO** — Enriched keywords in package.json (43 keywords), README, and plugin manifests with name variations and agent platform names
+
+## [2.2.0] - 2026-02-19
+
+### Added
+- **MCP Server** — `cs mcp` starts a Model Context Protocol server for Claude Code integration
+  - 8 tools: `session_status`, `start_session`, `end_session`, `log_ai_usage`, `add_note`, `get_stats`, `list_sessions`, `check_budget`
+  - Install as MCP server: `npx codesession-cli mcp` via Claude Code settings
+  - Available as `codesession-mcp` binary
+- **Donate Page** — `/donate` route in dashboard with GitHub Sponsors and Buy Me a Coffee links
+- **npm Downloads Badge** — Downloads/month badge in README header
+
+## [2.1.0] - 2026-02-17
+
+### Added
+- **Parallel Session Support** — Multiple simultaneous sessions in different git repositories
+  - `cs start` now scopes sessions by git root rather than globally blocking
+  - `resolveActiveSession()` helper picks the right session for the current directory
+  - Multiple AI agents in different repos can track sessions independently
+
+## [2.0.1] - 2026-02-15
+
+### Fixed
+- Removed M-Pesa from Donate page
+
 ## [2.0.0] - 2026-02-14
 
 ### Added

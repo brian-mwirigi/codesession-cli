@@ -1,7 +1,7 @@
 {
   "name": "codesession",
   "description": "codesession — Track AI agent session costs, tokens, files, and commits. Works with Claude Code, OpenClaw, Codex, GPT, Cursor, Windsurf, Cline. Budget enforcement, auto-pricing, MCP server, web dashboard.",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "author": {
     "name": "Brian Mwirigi",
     "url": "https://github.com/brian-mwirigi"

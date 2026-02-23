@@ -12,6 +12,9 @@ const { existsSync, mkdirSync } = require('fs');
 const DB_DIR = join(homedir(), '.codesession');
 const DB_PATH = join(DB_DIR, 'sessions.db');
 
+// Use the actual project root so git diffs work on this machine
+const PROJECT_DIR = join(__dirname, '..');
+
 if (!existsSync(DB_DIR)) mkdirSync(DB_DIR, { recursive: true });
 
 const db = new Database(DB_PATH);
@@ -83,9 +86,25 @@ function daysAgo(n, offsetMinutes = 0) {
   return d.toISOString();
 }
 
-function randomHash() {
-  return Math.random().toString(16).slice(2, 9);
-}
+// Real git hashes from the codesession-cli repo
+const GIT_HASHES = {
+  oldest:   '868124f', // Replace npm downloads badge
+  v190:     '0857343', // Alerts dashboard v1.10.0
+  v200:     'f6bc725', // v2.0.0
+  autoLog:  'e294355', // Add cs auto-log
+  bugfix:   '4c5e3de', // Fix 3 critical bugs
+  donate:   'e9080d2', // Add sponsor links
+  v201:     'c771743', // Bump to 2.0.1
+  parallel: '374e5f9', // Parallel session support
+  v210:     '1c526e9', // Bump to 2.1.0
+  mcp:      'ba7f39a', // MCP server
+  plugin:   '4a681bc', // Claude Code plugin
+  badge:    '04200e7', // npm downloads badge
+  codex:    '25c2c1a', // Codex pricing
+  seo:      '0a79335', // SEO improvements
+  seed:     'af35cbb', // Demo seed script
+  pricing:  '7aa3921', // Pricing tab
+};
 
 function insertSession(s) {
   return db.prepare(`
@@ -128,9 +147,9 @@ const s1 = insertSession({
   startTime: daysAgo(7),
   endTime: daysAgo(7, 94),
   duration: 5640,
-  workingDirectory: '/home/nesh/projects/codesession-cli',
-  gitRoot: '/home/nesh/projects/codesession-cli',
-  startGitHead: randomHash(),
+  workingDirectory: PROJECT_DIR,
+  gitRoot: PROJECT_DIR,
+  startGitHead: GIT_HASHES.oldest,
   filesChanged: 7,
   commits: 2,
   aiCost: 0.82,
@@ -146,8 +165,8 @@ insertFileChange(s1, 'tests/auth.test.ts', 'modified', daysAgo(7, 48));
 insertFileChange(s1, 'src/routes/login.ts', 'modified', daysAgo(7, 55));
 insertFileChange(s1, 'src/types/user.ts', 'modified', daysAgo(7, 67));
 insertFileChange(s1, 'README.md', 'modified', daysAgo(7, 80));
-insertCommit(s1, randomHash(), 'fix: JWT token expiry not refreshing correctly', daysAgo(7, 50));
-insertCommit(s1, randomHash(), 'test: add auth refresh token tests', daysAgo(7, 78));
+insertCommit(s1, GIT_HASHES.v190, 'fix: JWT token expiry not refreshing correctly', daysAgo(7, 50));
+insertCommit(s1, GIT_HASHES.v200, 'test: add auth refresh token tests', daysAgo(7, 78));
 insertAIUsage(s1, 'anthropic', 'claude-sonnet-4', 12000, 3200, 0.084, 'Code Fixer', daysAgo(7, 15));
 insertAIUsage(s1, 'anthropic', 'claude-sonnet-4', 18000, 4500, 0.1215, 'Code Fixer', daysAgo(7, 40));
 insertAIUsage(s1, 'anthropic', 'claude-opus-4-6', 8000, 2000, 0.27, 'Code Reviewer', daysAgo(7, 60));
@@ -161,9 +180,9 @@ const s2 = insertSession({
   startTime: daysAgo(5),
   endTime: daysAgo(5, 210),
   duration: 12600,
-  workingDirectory: '/home/nesh/projects/codesession-cli',
-  gitRoot: '/home/nesh/projects/codesession-cli',
-  startGitHead: randomHash(),
+  workingDirectory: PROJECT_DIR,
+  gitRoot: PROJECT_DIR,
+  startGitHead: GIT_HASHES.v200,
   filesChanged: 11,
   commits: 3,
   aiCost: 2.14,
@@ -183,9 +202,9 @@ insertFileChange(s2, 'src/types.ts', 'modified', daysAgo(5, 145));
 insertFileChange(s2, 'dashboard/src/components/Icons.tsx', 'modified', daysAgo(5, 160));
 insertFileChange(s2, 'package.json', 'modified', daysAgo(5, 175));
 insertFileChange(s2, 'CHANGELOG.md', 'modified', daysAgo(5, 190));
-insertCommit(s2, randomHash(), 'feat: add alerts dashboard with budget thresholds', daysAgo(5, 120));
-insertCommit(s2, randomHash(), 'feat: alarm mode with sound and browser notifications', daysAgo(5, 160));
-insertCommit(s2, randomHash(), 'chore: bump version to 2.0.0', daysAgo(5, 195));
+insertCommit(s2, GIT_HASHES.autoLog, 'feat: add alerts dashboard with budget thresholds', daysAgo(5, 120));
+insertCommit(s2, GIT_HASHES.bugfix, 'feat: alarm mode with sound and browser notifications', daysAgo(5, 160));
+insertCommit(s2, GIT_HASHES.donate, 'chore: bump version to 2.0.0', daysAgo(5, 195));
 insertAIUsage(s2, 'anthropic', 'claude-sonnet-4', 25000, 6000, 0.165, 'UI Builder', daysAgo(5, 30));
 insertAIUsage(s2, 'anthropic', 'claude-sonnet-4', 32000, 8000, 0.21, 'UI Builder', daysAgo(5, 70));
 insertAIUsage(s2, 'anthropic', 'claude-opus-4-6', 15000, 4000, 0.525, 'Code Reviewer', daysAgo(5, 100));
@@ -202,9 +221,9 @@ const s3 = insertSession({
   startTime: daysAgo(3),
   endTime: daysAgo(3, 180),
   duration: 10800,
-  workingDirectory: '/home/nesh/projects/codesession-cli',
-  gitRoot: '/home/nesh/projects/codesession-cli',
-  startGitHead: randomHash(),
+  workingDirectory: PROJECT_DIR,
+  gitRoot: PROJECT_DIR,
+  startGitHead: GIT_HASHES.donate,
   filesChanged: 8,
   commits: 3,
   aiCost: 1.76,
@@ -221,9 +240,9 @@ insertFileChange(s3, 'plugin/.mcp.json', 'created', daysAgo(3, 95));
 insertFileChange(s3, 'plugin/skills/codesession/SKILL.md', 'created', daysAgo(3, 100));
 insertFileChange(s3, '.claude-plugin/marketplace.json', 'created', daysAgo(3, 120));
 insertFileChange(s3, 'README.md', 'modified', daysAgo(3, 160));
-insertCommit(s3, randomHash(), 'feat: add MCP server with 8 session tracking tools', daysAgo(3, 80));
-insertCommit(s3, randomHash(), 'feat: add Claude Code plugin with marketplace', daysAgo(3, 130));
-insertCommit(s3, randomHash(), 'docs: update README with MCP installation guide', daysAgo(3, 165));
+insertCommit(s3, GIT_HASHES.mcp, 'feat: add MCP server with 8 session tracking tools', daysAgo(3, 80));
+insertCommit(s3, GIT_HASHES.plugin, 'feat: add Claude Code plugin with marketplace', daysAgo(3, 130));
+insertCommit(s3, GIT_HASHES.badge, 'docs: update README with MCP installation guide', daysAgo(3, 165));
 insertAIUsage(s3, 'anthropic', 'claude-opus-4-6', 20000, 5000, 0.675, 'Architect', daysAgo(3, 25));
 insertAIUsage(s3, 'anthropic', 'claude-sonnet-4', 35000, 9000, 0.24, 'Code Builder', daysAgo(3, 60));
 insertAIUsage(s3, 'anthropic', 'claude-sonnet-4', 28000, 7000, 0.189, 'Code Builder', daysAgo(3, 100));
@@ -239,9 +258,9 @@ const s4 = insertSession({
   startTime: daysAgo(2),
   endTime: daysAgo(2, 75),
   duration: 4500,
-  workingDirectory: '/home/nesh/projects/codesession-cli',
-  gitRoot: '/home/nesh/projects/codesession-cli',
-  startGitHead: randomHash(),
+  workingDirectory: PROJECT_DIR,
+  gitRoot: PROJECT_DIR,
+  startGitHead: GIT_HASHES.v201,
   filesChanged: 3,
   commits: 2,
   aiCost: 0.54,
@@ -253,8 +272,8 @@ const s4 = insertSession({
 insertFileChange(s4, 'src/index.ts', 'modified', daysAgo(2, 20));
 insertFileChange(s4, 'src/db.ts', 'modified', daysAgo(2, 35));
 insertFileChange(s4, 'src/git.ts', 'modified', daysAgo(2, 50));
-insertCommit(s4, randomHash(), 'fix: allow parallel sessions in different git repos', daysAgo(2, 55));
-insertCommit(s4, randomHash(), 'feat: bump to v2.1.0', daysAgo(2, 70));
+insertCommit(s4, GIT_HASHES.parallel, 'fix: allow parallel sessions in different git repos', daysAgo(2, 55));
+insertCommit(s4, GIT_HASHES.v210, 'feat: bump to v2.1.0', daysAgo(2, 70));
 insertAIUsage(s4, 'anthropic', 'claude-sonnet-4', 18000, 4500, 0.1215, 'Bug Fixer', daysAgo(2, 25));
 insertAIUsage(s4, 'anthropic', 'claude-sonnet-4', 15000, 3800, 0.102, 'Bug Fixer', daysAgo(2, 50));
 insertNote(s4, 'Bill reported sessions blocking each other', daysAgo(2, 5));
@@ -266,9 +285,9 @@ const s5 = insertSession({
   startTime: daysAgo(0, -60),
   endTime: null,
   duration: null,
-  workingDirectory: '/home/nesh/projects/codesession-cli',
-  gitRoot: '/home/nesh/projects/codesession-cli',
-  startGitHead: randomHash(),
+  workingDirectory: PROJECT_DIR,
+  gitRoot: PROJECT_DIR,
+  startGitHead: GIT_HASHES.v210,
   filesChanged: 5,
   commits: 1,
   aiCost: 0.31,
@@ -282,7 +301,7 @@ insertFileChange(s5, 'README.md', 'modified', daysAgo(0, -45));
 insertFileChange(s5, 'plugin/.claude-plugin/plugin.json', 'modified', daysAgo(0, -35));
 insertFileChange(s5, '.claude-plugin/marketplace.json', 'modified', daysAgo(0, -25));
 insertFileChange(s5, 'skills/codesession/SKILL.md', 'modified', daysAgo(0, -15));
-insertCommit(s5, randomHash(), 'seo: add keyword variations and agent names everywhere', daysAgo(0, -20));
+insertCommit(s5, GIT_HASHES.seo, 'seo: add keyword variations and agent names everywhere', daysAgo(0, -20));
 insertAIUsage(s5, 'anthropic', 'claude-sonnet-4', 10000, 2500, 0.0675, 'SEO Assistant', daysAgo(0, -55));
 insertAIUsage(s5, 'anthropic', 'claude-opus-4-6', 7000, 1800, 0.24, 'Architect', daysAgo(0, -30));
 insertNote(s5, 'Adding keywords to all metadata files', daysAgo(0, -50));
