@@ -7,8 +7,9 @@ import ModelBreakdown from './components/ModelBreakdown';
 import Insights from './components/Insights';
 import Alerts from './components/Alerts';
 import Donate from './components/Donate';
+import Pricing from './components/Pricing';
 
-export type Page = 'overview' | 'sessions' | 'models' | 'insights' | 'alerts' | 'donate';
+export type Page = 'overview' | 'sessions' | 'models' | 'insights' | 'alerts' | 'donate' | 'pricing';
 
 // ── URL-based routing (no react-router needed) ─────────────
 
@@ -23,6 +24,7 @@ function parseRoute(): { page: Page; sessionId: number | null } {
   if (path === '/insights') return { page: 'insights', sessionId: null };
   if (path === '/alerts') return { page: 'alerts', sessionId: null };
   if (path === '/donate') return { page: 'donate', sessionId: null };
+  if (path === '/pricing') return { page: 'pricing', sessionId: null };
   return { page: 'overview', sessionId: null };
 }
 
@@ -81,6 +83,8 @@ export default function App() {
           <Alerts />
         ) : page === 'donate' ? (
           <Donate />
+        ) : page === 'pricing' ? (
+          <Pricing />
         ) : (
           <ModelBreakdown />
         )}

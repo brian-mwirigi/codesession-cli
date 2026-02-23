@@ -9,7 +9,7 @@ import {
   getStats, getActiveSessions,
   getSessionsPaginated, getSessionDetail,
   getDailyCosts, getModelBreakdown, getTopSessions,
-  exportSessions, loadPricing,
+  exportSessions, loadPricing, setPricing, getPricingPath,
   getProviderBreakdown, getFileHotspots, getActivityHeatmap,
   getDailyTokens, getCostVelocity, getProjectBreakdown, getTokenRatios,
   getSession, getCommits, clearAllData,
@@ -329,6 +329,36 @@ function buildApiRouter(): Router {
     }
   });
 
+  router.post('/pricing', (req, res) => {
+    try {
+      const { model, input, output } = req.body;
+      if (!model || typeof input !== 'number' || typeof output !== 'number') {
+        return res.status(400).json({ error: 'model, input, and output are required' });
+      }
+      setPricing(model, input, output);
+      res.json({ ok: true, model, input, output });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  router.delete('/pricing/:model', (req, res) => {
+    try {
+      // Remove a single custom model override by rewriting the pricing file without it
+      const { readFileSync, writeFileSync, existsSync } = require('fs');
+      const pricingPath = getPricingPath();
+      let user: Record<string, any> = {};
+      if (existsSync(pricingPath)) {
+        try { user = JSON.parse(readFileSync(pricingPath, 'utf-8')); } catch (_) { user = {}; }
+      }
+      delete user[decodeURIComponent(req.params.model)];
+      writeFileSync(pricingPath, JSON.stringify(user, null, 2));
+      res.json({ ok: true });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   router.get('/export', (req, res) => {
     try {
       const format = (req.query.format as string) === 'csv' ? 'csv' : 'json';
@@ -480,6 +510,7 @@ export function startDashboard(options: DashboardOptions = {}): void {
   app.get('/insights', sendSpa);
   app.get('/alerts', sendSpa);
   app.get('/donate', sendSpa);
+  app.get('/pricing', sendSpa);
 
   // ── Port conflict handling & startup ──────────────────────
 

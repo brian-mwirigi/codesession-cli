@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { Page } from '../App';
 import { fetchApi, postApi } from '../api';
-import { IconOverview, IconSessions, IconModels, IconActivity, IconBarChart, IconBell, IconHeart, IconRefreshCw } from './Icons';
+import { IconOverview, IconSessions, IconModels, IconActivity, IconBarChart, IconBell, IconHeart, IconTag, IconRefreshCw } from './Icons';
 
 const NAV: { page: Page; icon: React.ReactNode; label: string }[] = [
   { page: 'overview', icon: <IconOverview size={16} />, label: 'Overview' },
@@ -10,6 +10,7 @@ const NAV: { page: Page; icon: React.ReactNode; label: string }[] = [
   { page: 'insights', icon: <IconBarChart size={16} />, label: 'Insights' },
   { page: 'alerts', icon: <IconBell size={16} />, label: 'Alerts' },
   { page: 'donate', icon: <IconHeart size={16} />, label: 'Donate' },
+  { page: 'pricing', icon: <IconTag size={16} />, label: 'Pricing' },
 ];
 
 interface Props {

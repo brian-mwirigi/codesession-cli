@@ -227,6 +227,13 @@ export function IconHeart(p: IconProps) {
   return svg('M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z', p);
 }
 
+export function IconTag(p: IconProps) {
+  return svgMulti([
+    'M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z',
+    'M7 7h.01',
+  ], p);
+}
+
 export function IconCpu(p: IconProps) {
   return svgMulti([
     'M18 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z',
