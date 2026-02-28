@@ -1,6 +1,6 @@
 ---
 name: codesession
-description: codesession (codesession-cli, code session, code-session) — Track AI agent session costs, tokens, file changes, and git commits. Works with Claude Code, OpenClaw, Codex, GPT, Cursor, Windsurf, Cline & any AI agent. Budget enforcement, auto-pricing, MCP server, web dashboard, alerts, insights. v2.3.0.
+description: codesession (codesession-cli, code session, code-session) — Track AI agent session costs, tokens, file changes, and git commits. Works with Claude Code, OpenClaw, Codex, GPT, Cursor, Windsurf, Cline & any AI agent. Budget enforcement, auto-pricing, MCP server, web dashboard, alerts, insights. v2.4.0.
 metadata: {"openclaw": {"homepage": "https://github.com/brian-mwirigi/codesession-cli", "requires": {"bins": ["cs"]}, "install": [{"id": "npm", "kind": "node", "package": "codesession-cli", "bins": ["cs"], "label": "Install codesession-cli (npm)"}]}}
 ---
 
@@ -8,7 +8,7 @@ metadata: {"openclaw": {"homepage": "https://github.com/brian-mwirigi/codesessio
 
 Track agent session costs, file changes, and git commits. Enforces budget limits and provides detailed session analytics with a full web dashboard.
 
-**Latest: v2.2.0** - Claude Code MCP plugin, alerts dashboard, start fresh, insights page, alarm mode.
+**Latest: v2.4.0** - Codex pricing (`codex-mini-latest`, `gpt-5.1-codex-max`, `gpt-5.1-codex-mini`, `gpt-5.3-codex`), security fixes, stability improvements.
 
 📦 [npm](https://www.npmjs.com/package/codesession-cli) • ⭐ [GitHub](https://github.com/brian-mwirigi/codesession-cli) • 📝 [Changelog](https://github.com/brian-mwirigi/codesession-cli/blob/main/CHANGELOG.md)
 
@@ -74,7 +74,7 @@ cs log-ai -p anthropic -m claude-opus-4-6 -t 15000 -c 0.30 --json
 cs log-ai -p openai -m gpt-4o --prompt-tokens 5000 --completion-tokens 1500 -c 0.04 --agent "Research Agent" --json
 ```
 Providers: `anthropic`, `openai`, `google`, `mistral`, `deepseek`
-Cost is auto-calculated from a configurable pricing table (17+ built-in models). Use `cs pricing list --json` to see known models. If a model is unknown, provide `-c <cost>` manually.
+Cost is auto-calculated from a configurable pricing table (21+ built-in models including Codex). Use `cs pricing list --json` to see known models. If a model is unknown, provide `-c <cost>` manually.
 
 **Agent Name (optional):** Use `--agent "Agent Name"` to track which agent performed the work. Perfect for multi-agent systems, A/B testing, and cost attribution. Agent names appear in the dashboard and can be used to filter/analyze costs per agent.
 

@@ -22,7 +22,7 @@ You have access to codesession MCP tools for tracking AI session costs. Use them
 | `session_status` | Get active session status (cost, tokens, duration) |
 | `start_session` | Start a new tracking session |
 | `end_session` | End session and get full summary |
-| `log_ai_usage` | Log token usage (auto-prices 17+ models) |
+| `log_ai_usage` | Log token usage (auto-prices 21+ models incl. Codex) |
 | `add_note` | Add timestamped notes |
 | `get_stats` | Overall statistics across all sessions |
 | `list_sessions` | List recent sessions |
@@ -30,7 +30,7 @@ You have access to codesession MCP tools for tracking AI session costs. Use them
 
 ## Auto-Pricing
 
-Cost is auto-calculated for known models. Supported providers: `anthropic`, `openai`, `google`, `mistral`, `deepseek`. If a model is unknown, provide the `cost` parameter manually.
+Cost is auto-calculated for known models. Supported providers: `anthropic`, `openai`, `google`, `mistral`, `deepseek`. Codex models supported: `codex-mini-latest`, `gpt-5.1-codex-max`, `gpt-5.1-codex-mini`, `gpt-5.3-codex`. If a model is unknown, provide the `cost` parameter manually.
 
 ## Budget Awareness
 
