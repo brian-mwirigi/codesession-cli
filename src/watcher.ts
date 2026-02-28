@@ -34,7 +34,11 @@ export function startWatcher(sessionId: number, cwd: string): void {
   watcher
     .on('add', (path) => handleChange(sessionId, path, cwd, 'created'))
     .on('change', (path) => handleChange(sessionId, path, cwd, 'modified'))
-    .on('unlink', (path) => handleChange(sessionId, path, cwd, 'deleted'));
+    .on('unlink', (path) => handleChange(sessionId, path, cwd, 'deleted'))
+    .on('error', (error) => {
+      // Log watcher errors to stderr but don't crash — non-fatal (e.g. ENOSPC, EACCES)
+      process.stderr.write(`[codesession] watcher error (session ${sessionId}): ${error}\n`);
+    });
 }
 
 export function stopWatcher(sessionId?: number): void {

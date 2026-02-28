@@ -1,6 +1,6 @@
 {
   "name": "codesession-cli",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "description": "codesession — Track AI agent costs, tokens, files & commits. Session tracker for Claude Code, OpenClaw, Codex, GPT, Cursor, Windsurf, Cline & any AI agent. Budget enforcement, auto-pricing, MCP server, web dashboard. Also known as codesession-cli, code session, code-session.",
   "funding": "https://github.com/sponsors/brian-mwirigi",
   "main": "dist/index.js",
@@ -117,5 +117,16 @@
   },
   "engines": {
     "node": ">=16.0.0"
-  }
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brian-mwirigi/codesession-cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/brian-mwirigi/codesession-cli/issues"
+  },
+  "homepage": "https://github.com/brian-mwirigi/codesession-cli#readme"
 }

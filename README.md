@@ -26,12 +26,12 @@
 
 ---
 
-## What's New in v2.0.0
+## What's New in v2.4.0
 
-- **Alerts Dashboard** — Set daily, total, and per-session cost limits with progress bars, alarm mode (sound + browser notifications), and status badges
-- **Start Fresh** — Reset all session data from the dashboard with a confirmation modal
-- **Insights Page** — File hotspots, activity heatmap, project breakdown, pricing table
-- **Bug Fixes** — Fixed alarm autoplay policy, null ref crash, active session cleanup on reset
+- **Extended Codex Pricing** — `codex-mini-latest`, `gpt-5.1-codex-max`, `gpt-5.1-codex-mini`, `gpt-5.3-codex` added to auto-pricing table
+- **Security Hardening** — Shell injection fix, `/api/reset` now requires `?confirm=true`, input validation on `log-ai`
+- **Stability Fixes** — Watcher crash on filesystem errors fixed, git polling race condition resolved, 15s timeout on all git operations
+- **Community Files** — `CODE_OF_CONDUCT`, `CONTRIBUTING`, `SECURITY`, issue templates, PR template
 
 [Full Changelog →](https://github.com/brian-mwirigi/codesession-cli/blob/main/CHANGELOG.md)
 

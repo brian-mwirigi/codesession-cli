@@ -1,6 +1,6 @@
 import express, { Request, Response, NextFunction, Router } from 'express';
 import { join } from 'path';
-import { exec, execSync } from 'child_process';
+import { exec, execSync, execFileSync } from 'child_process';
 import { createServer } from 'net';
 import { existsSync, readFileSync, writeFileSync, unlinkSync, mkdirSync } from 'fs';
 import { homedir } from 'os';
@@ -82,7 +82,8 @@ function killOwnStaleProcess(port: number): boolean {
     }
 
     if (process.platform === 'win32') {
-      execSync(`taskkill /PID ${pid} /F`, { timeout: 5000 });
+      // Use execFileSync (no shell) to avoid any command injection risk
+      execFileSync('taskkill', ['/PID', String(pid), '/F'], { timeout: 5000 });
     } else {
       process.kill(pid, 'SIGTERM');
     }
@@ -383,8 +384,12 @@ function buildApiRouter(): Router {
     }
   });
 
-  router.post('/reset', (_req, res) => {
+  router.post('/reset', (req, res) => {
     try {
+      // Require explicit confirmation to prevent accidental data wipe
+      if (req.query.confirm !== 'true') {
+        return res.status(400).json({ error: 'Add ?confirm=true to confirm permanent deletion of all session data' });
+      }
       clearAllData();
       res.json({ ok: true, message: 'All session data cleared' });
     } catch (e: any) {

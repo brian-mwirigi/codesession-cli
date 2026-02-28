@@ -463,7 +463,11 @@ const DEFAULT_PRICING: Record<string, { input: number; output: number }> = {
   'gpt-5-mini': { input: 0.25, output: 2 },
   'gpt-5-codex': { input: 1.25, output: 10 },
   'gpt-5.1-codex': { input: 1.25, output: 10 },
+  'gpt-5.1-codex-max': { input: 1.25, output: 10 },
+  'gpt-5.1-codex-mini': { input: 0.25, output: 2 },
   'gpt-5.2-codex': { input: 1.75, output: 14 },
+  'gpt-5.3-codex': { input: 1.75, output: 14 },
+  'codex-mini-latest': { input: 1.50, output: 6 },
   'o3': { input: 2, output: 8 },
   'o4-mini': { input: 1.10, output: 4.40 },
   // Google (per 1M tokens)

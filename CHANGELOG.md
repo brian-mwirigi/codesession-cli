@@ -5,6 +5,33 @@ All notable changes to codesession-cli will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.0] - 2026-03-01
+
+### Added
+- **Extended Codex Pricing** — Added 4 real OpenAI Codex models to the built-in pricing table
+  - `gpt-5.1-codex-max` ($1.25 / $10.00 per 1M tokens)
+  - `gpt-5.1-codex-mini` ($0.25 / $2.00 per 1M tokens)
+  - `gpt-5.3-codex` ($1.75 / $14.00 per 1M tokens)
+  - `codex-mini-latest` ($1.50 / $6.00 per 1M tokens)
+  - Auto-pricing now works for all Codex models without manual `--cost` flag
+- **Community Health Files** — Added full GitHub community standards
+  - `CODE_OF_CONDUCT.md` (Contributor Covenant v2.1)
+  - `CONTRIBUTING.md` with development setup, coding guidelines, and commit conventions
+  - `SECURITY.md` with vulnerability disclosure policy
+  - Issue templates: Bug Report, Feature Request, Question
+  - Pull Request template
+
+### Fixed
+- **Watcher crash on filesystem errors** — Added `.on('error')` handler to chokidar watcher; errors like `ENOSPC` or `EACCES` now log to stderr instead of crashing the process ([`src/watcher.ts`](src/watcher.ts))
+- **Git polling race condition** — Added `isChecking` guard flag to `checkForNewCommits` to prevent concurrent polling calls from writing duplicate commits ([`src/git.ts`](src/git.ts))
+- **Git operation timeout** — All `simpleGit()` instances now have a 15s block timeout to prevent hangs on slow or network file systems
+- **Shell injection risk** — Replaced `execSync('taskkill /PID ...')` with `execFileSync('taskkill', [...])` to eliminate shell evaluation in dashboard server ([`src/dashboard-server.ts`](src/dashboard-server.ts))
+- **Unguarded `/api/reset` endpoint** — `POST /api/reset` now requires `?confirm=true` query param to prevent accidental data wipes
+- **No input validation on `log-ai`** — Added validation for provider/model name length, non-negative tokens, and finite cost values
+
+### Changed
+- `package.json` now includes `repository`, `bugs`, and `homepage` fields for npm registry display
+
 ## [2.3.0] - 2026-02-23
 
 ### Added

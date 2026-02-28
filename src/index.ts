@@ -471,6 +471,38 @@ program
       return;
     }
 
+    // ── Input validation ──────────────────────────────────────
+    if (options.provider.length > 100) {
+      const msg = 'Provider name too long (max 100 characters)';
+      if (options.json) jsonError('invalid_input', msg);
+      else { console.log(chalk.red(`\n${msg}\n`)); return; }
+    }
+    if (options.model.length > 200) {
+      const msg = 'Model name too long (max 200 characters)';
+      if (options.json) jsonError('invalid_input', msg);
+      else { console.log(chalk.red(`\n${msg}\n`)); return; }
+    }
+    if (options.cost !== undefined && (options.cost < 0 || !Number.isFinite(options.cost))) {
+      const msg = 'Cost must be a non-negative number';
+      if (options.json) jsonError('invalid_input', msg);
+      else { console.log(chalk.red(`\n${msg}\n`)); return; }
+    }
+    if (options.tokens !== undefined && (!Number.isInteger(options.tokens) || options.tokens < 0)) {
+      const msg = 'Tokens must be a non-negative integer';
+      if (options.json) jsonError('invalid_input', msg);
+      else { console.log(chalk.red(`\n${msg}\n`)); return; }
+    }
+    if (options.promptTokens !== undefined && (!Number.isInteger(options.promptTokens) || options.promptTokens < 0)) {
+      const msg = 'Prompt tokens must be a non-negative integer';
+      if (options.json) jsonError('invalid_input', msg);
+      else { console.log(chalk.red(`\n${msg}\n`)); return; }
+    }
+    if (options.completionTokens !== undefined && (!Number.isInteger(options.completionTokens) || options.completionTokens < 0)) {
+      const msg = 'Completion tokens must be a non-negative integer';
+      if (options.json) jsonError('invalid_input', msg);
+      else { console.log(chalk.red(`\n${msg}\n`)); return; }
+    }
+
     const promptTk = options.promptTokens || 0;
     const completionTk = options.completionTokens || 0;
     const totalTokens = options.tokens || (promptTk + completionTk);
