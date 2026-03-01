@@ -37,10 +37,12 @@ if (existsSync(LEGACY_DB_DIR) && !existsSync(NEW_DB_DIR)) {
 }
 
 const DB_DIR = NEW_DB_DIR;
-const DB_PATH = join(DB_DIR, 'sessions.db');
+const DB_PATH = process.env.CODESESSION_DB_PATH ?? join(DB_DIR, 'sessions.db');
 
-if (!existsSync(DB_DIR)) {
-  mkdirSync(DB_DIR, { recursive: true });
+// Ensure the directory for the chosen DB path exists
+const dbDir = require('path').dirname(DB_PATH);
+if (!existsSync(dbDir)) {
+  mkdirSync(dbDir, { recursive: true });
 }
 
 const db = new Database(DB_PATH);

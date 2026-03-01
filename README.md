@@ -194,6 +194,60 @@ cs export --format json --limit 10
 
 ---
 
+## Proxy Mode (Zero-Config Auto-Tracking)
+
+> **Requires no skill file or MCP** — works with any tool that calls the Anthropic or OpenAI API.
+
+Start the local proxy, point your env vars at it, and every API call is automatically tracked to the active session. Your API key travels through `127.0.0.1` only and is forwarded directly to the real upstream — it is **never stored, logged, or written to disk**.
+
+```bash
+# Start the proxy (default port 3739)
+cs proxy
+
+# Or choose a custom port
+cs proxy --port 4000
+```
+
+On startup, the proxy prints the two env vars to set:
+
+```
+✓ Proxy listening on http://127.0.0.1:3739
+  set ANTHROPIC_BASE_URL=http://127.0.0.1:3739
+  set OPENAI_BASE_URL=http://127.0.0.1:3739
+```
+
+Export them in your shell (or add to `.env`), then use Claude/OpenAI clients as normal:
+
+```bash
+export ANTHROPIC_BASE_URL=http://127.0.0.1:3739
+export OPENAI_BASE_URL=http://127.0.0.1:3739
+
+# start a session, then your agent runs normally
+cs start "Build checkout flow"
+python my_agent.py     # tokens & cost auto-logged
+cs end
+```
+
+### Security guarantees
+
+| Guarantee | How |
+|---|---|
+| Localhost-only | Binds to `127.0.0.1` — never `0.0.0.0` |
+| No prompt storage | Request/response bodies are forwarded and discarded |
+| No key storage | `Authorization` header forwarded, never written to DB |
+| SSRF impossible | Upstream hosts are hardcoded (`api.anthropic.com`, `api.openai.com`) |
+| 10 MB body cap | Prevents memory exhaustion |
+| No error leakage | 502 returns generic `"upstream connection failed"` — no stack traces |
+
+Health check:
+
+```bash
+curl http://127.0.0.1:3739/health
+# {"status":"running","activeSession":{"id":5,"name":"Build checkout flow",...}}
+```
+
+---
+
 ## Web Dashboard
 
 See all your session data in a browser:

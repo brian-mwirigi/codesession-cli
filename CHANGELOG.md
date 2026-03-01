@@ -5,6 +5,23 @@ All notable changes to codesession-cli will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Local API Proxy (`cs proxy`)** — Zero-config auto-tracking via a local HTTP proxy
+  - `cs proxy` starts a proxy on `http://127.0.0.1:3739` (configurable with `--port`)
+  - Set `ANTHROPIC_BASE_URL` / `OPENAI_BASE_URL` to proxy endpoint; all API calls are automatically tracked to the active session
+  - Intercepts `POST /v1/messages` (Anthropic) and `POST /v1/chat/completions` (OpenAI); full SSE streaming support
+  - `GET /health` returns proxy status and active-session metadata
+  - **Security hardened**: binds `127.0.0.1` only, upstream hosts hardcoded (SSRF-proof), request bodies never stored or logged, `Authorization` headers forwarded-only, 10 MB body cap, 30 s upstream timeout, 403 for non-loopback connections, generic 502 on upstream failure (no stack leakage)
+- **Vitest test suite** — 26 tests across 3 suites
+  - `formatters.test.ts` — unit tests for `formatDuration` and `formatCost`
+  - `proxy.test.ts` — HTTP endpoint tests (400 validation, 502 safety, localhost guard, health, 404, privacy contract)
+  - `db.test.ts` — real SQLite tests using `CODESESSION_DB_PATH` env-var isolation (session lifecycle, AI usage accumulation, pricing table)
+  - `npm test`, `npm run test:watch`, `npm run test:coverage` scripts
+- **`CODESESSION_DB_PATH` env var** — Override database path for test isolation or custom deployments
+- **0 audit vulnerabilities** — resolved critical `basic-ftp`, high `rollup`, and low `hono`/`qs` advisories via `npm audit fix`
+
 ## [2.4.0] - 2026-03-01
 
 ### Added

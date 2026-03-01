@@ -897,6 +897,54 @@ program
     })));
   });
 
+// ─── Proxy ────────────────────────────────────────────────────
+
+program
+  .command('proxy')
+  .description('Start a local API proxy that auto-logs token usage to the active session')
+  .option('-p, --port <port>', 'Port to listen on (default: 3739)', parseInt, 3739)
+  .action(async (options) => {
+    const port: number = options.port;
+    if (!Number.isInteger(port) || port < 1024 || port > 65535) {
+      console.error(chalk.red(`\nInvalid port: ${port}. Use a value between 1024 and 65535.\n`));
+      process.exit(1);
+    }
+
+    const { startProxy } = require('./proxy');
+
+    console.log(chalk.bold(`\ncodesession proxy`));
+    console.log(chalk.gray(`  Starting on http://127.0.0.1:${port} ...\n`));
+
+    let server: any;
+    try {
+      server = await startProxy(port);
+    } catch (err: any) {
+      console.error(chalk.red(`\nFailed to start proxy: ${err.message}\n`));
+      process.exit(1);
+    }
+
+    console.log(chalk.green(`  Proxy running on http://127.0.0.1:${port}`));
+    console.log(chalk.bold('\n  Set these env vars before running your agent:\n'));
+    console.log(chalk.cyan(`    export ANTHROPIC_BASE_URL=http://127.0.0.1:${port}`));
+    console.log(chalk.cyan(`    export OPENAI_BASE_URL=http://127.0.0.1:${port}/v1`));
+    console.log(chalk.gray('\n  Intercepting:'));
+    console.log(chalk.gray(`    POST /v1/messages          → api.anthropic.com`));
+    console.log(chalk.gray(`    POST /v1/chat/completions  → api.openai.com`));
+    console.log(chalk.gray('\n  Usage:'));
+    console.log(chalk.gray(`    cs start "my task"   # start a session first`));
+    console.log(chalk.gray(`    # ... run your agent with the env vars above ...`));
+    console.log(chalk.gray(`    cs end               # get your cost breakdown`));
+    console.log(chalk.gray('\n  Press Ctrl+C to stop the proxy.\n'));
+
+    const shutdown = () => {
+      console.log(chalk.gray('\nProxy stopped.\n'));
+      server.close();
+      process.exit(0);
+    };
+    process.on('SIGINT', shutdown);
+    process.on('SIGTERM', shutdown);
+  });
+
 // Only parse CLI args when run directly (not when imported as a library)
 if (require.main === module) {
   program.parse();
