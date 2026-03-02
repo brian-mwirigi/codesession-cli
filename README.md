@@ -1,6 +1,6 @@
 ﻿<div align="center">
   <h1>codesession-cli</h1>
-  <p><strong>Track what your AI agents actually cost — in one command.</strong></p>
+  <p><strong>See exactly what every AI agent run costs — tokens, files, commits, duration.</strong></p>
 
   <p>
     <a href="https://www.npmjs.com/package/codesession-cli"><img src="https://img.shields.io/npm/v/codesession-cli?color=brightgreen" alt="npm version"></a>
@@ -14,7 +14,7 @@
     <a href="https://buymeacoffee.com/brianmwirigi"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-%E2%98%95-yellow?logo=buymeacoffee&logoColor=black" alt="Buy Me a Coffee"></a>
   </p>
 
-  <p><em>No config. No setup. Just wrap your command.</em></p>
+  <p>Works with <strong>Claude Code, OpenClaw, Codex, Cursor, Windsurf, Cline</strong> &amp; any AI agent.</p>
 </div>
 
 ---
@@ -29,19 +29,43 @@ npm install -g codesession-cli
 
 ---
 
-## Quick Start — one command
+## Using Claude Code, OpenClaw, or Codex?
+
+Install the skill once. The agent tracks itself — you never have to run a command manually.
+
+```bash
+clawhub install codesession
+```
+
+Every agent task is now automatically tracked: session start/end, every AI call, cost, files changed, commits. Open the dashboard any time:
+
+```bash
+cs dashboard
+```
+
+> No ClawHub? Add the MCP server to Claude Code's settings:
+> ```bash
+> cs mcp   # starts Model Context Protocol server
+> ```
+> Or copy the skill manually: `cp -r $(npm root -g)/codesession-cli/skills/codesession ~/.openclaw/skills/`
+
+---
+
+## Running your own agent script?
+
+Wrap it with `cs run` — one command, zero config:
 
 ```bash
 cs run python my_agent.py
+cs run node agent.js
+cs run -- npx my-agent --task "fix the bug"
 ```
 
-That's it. No extra terminals, no env vars, no `cs start` / `cs end` to remember.
-
-`cs run` automatically:
-1. Starts a tracking session
-2. Launches a local API proxy that intercepts Anthropic + OpenAI calls
-3. Runs your command with the proxy pre-configured
-4. Ends the session and prints a cost summary when your command exits
+What happens automatically:
+1. Session started
+2. Local proxy launched — Anthropic + OpenAI calls intercepted
+3. Command runs with the proxy pre-configured (no env vars to export)
+4. Session ended, cost summary printed on exit
 
 ```
   ● codesession  python my_agent.py
@@ -182,17 +206,9 @@ All commands accept `--json` for machine-readable output.
 
 ---
 
-## Agent + MCP integration
+## Programmatic API
 
-### Claude Code / OpenClaw
-
-```bash
-clawhub install codesession
-```
-
-Once installed, the agent runs `cs start`, `cs log-ai`, and `cs end` automatically.
-
-### Programmatic API
+Build codesession into your own agent framework:
 
 ```typescript
 import { runAgentSession } from 'codesession-cli/agents';
