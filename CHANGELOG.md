@@ -5,9 +5,17 @@ All notable changes to codesession-cli will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.5.0] - 2026-03-02
 
 ### Added
+- **`cs run <command>`** — One-command zero-friction tracking: starts session, starts proxy, runs command, ends session, prints cost summary
+  - `cs run python agent.py` — no extra terminals or env var exports needed
+  - `--name` option for custom session name (defaults to command string)
+  - `--port` option for custom proxy port
+  - `--no-proxy` to wrap session only without the proxy
+  - Prints duration, files, commits, AI cost, and top model on exit
+- **`cs proxy --session <name>`** (`-s`) — auto-start a session when starting the proxy, eliminating the need for a separate `cs start`
+- **Smarter proxy startup message** — shows live active session name, auto-detects Windows vs Unix for correct env var syntax (`$env:` vs `export`), warns when no session is active
 - **Local API Proxy (`cs proxy`)** — Zero-config auto-tracking via a local HTTP proxy
   - `cs proxy` starts a proxy on `http://127.0.0.1:3739` (configurable with `--port`)
   - Set `ANTHROPIC_BASE_URL` / `OPENAI_BASE_URL` to proxy endpoint; all API calls are automatically tracked to the active session

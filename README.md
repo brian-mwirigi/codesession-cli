@@ -1,764 +1,277 @@
-<div align="center">
+﻿<div align="center">
   <h1>codesession-cli</h1>
-  <p><strong>Track what your AI agents actually cost — session tracker for Claude Code, OpenClaw, Codex, Cursor & more</strong></p>
+  <p><strong>Track what your AI agents actually cost — in one command.</strong></p>
 
   <p>
     <a href="https://www.npmjs.com/package/codesession-cli"><img src="https://img.shields.io/npm/v/codesession-cli?color=brightgreen" alt="npm version"></a>
-    <a href="https://clawhub.ai/brian-mwirigi/codesession"><img src="https://img.shields.io/badge/OpenClaw-Skill-blue" alt="OpenClaw Skill"></a>
     <a href="https://www.npmjs.com/package/codesession-cli"><img src="https://img.shields.io/npm/dm/codesession-cli?color=orange" alt="npm downloads"></a>
     <a href="https://github.com/brian-mwirigi/codesession-cli"><img src="https://img.shields.io/github/stars/brian-mwirigi/codesession-cli?style=social" alt="GitHub stars"></a>
     <a href="https://github.com/brian-mwirigi/codesession-cli/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/codesession-cli" alt="license"></a>
   </p>
 
-  <p><em>Track agent runs • Monitor files • Log commits • Enforce budgets</em></p>
-
-  <p>If this tool saves you money, consider <a href="https://github.com/sponsors/brian-mwirigi">sponsoring</a> or <a href="https://github.com/brian-mwirigi/codesession-cli">giving it a star</a></p>
-
   <p>
     <a href="https://github.com/sponsors/brian-mwirigi"><img src="https://img.shields.io/badge/Sponsor-%E2%9D%A4-pink?logo=github" alt="Sponsor"></a>
     <a href="https://buymeacoffee.com/brianmwirigi"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-%E2%98%95-yellow?logo=buymeacoffee&logoColor=black" alt="Buy Me a Coffee"></a>
-    <a href="https://www.npmjs.com/package/codesession-cli"> npm</a> •
-    <a href="https://github.com/brian-mwirigi/codesession-cli"> GitHub</a> •
-    <a href="https://github.com/brian-mwirigi/codesession-cli/blob/main/CHANGELOG.md"> Changelog</a> •
-    <a href="#openclaw-skill"> OpenClaw Skill</a>
   </p>
+
+  <p><em>No config. No setup. Just wrap your command.</em></p>
 </div>
 
 ---
 
-## What's New in v2.4.0
-
-- **Extended Codex Pricing** — `codex-mini-latest`, `gpt-5.1-codex-max`, `gpt-5.1-codex-mini`, `gpt-5.3-codex` added to auto-pricing table
-- **Security Hardening** — Shell injection fix, `/api/reset` now requires `?confirm=true`, input validation on `log-ai`
-- **Stability Fixes** — Watcher crash on filesystem errors fixed, git polling race condition resolved, 15s timeout on all git operations
-- **Community Files** — `CODE_OF_CONDUCT`, `CONTRIBUTING`, `SECURITY`, issue templates, PR template
-
-[Full Changelog →](https://github.com/brian-mwirigi/codesession-cli/blob/main/CHANGELOG.md)
-
----
-
-## Dashboard Preview
-
-<div align="center">
-  <img src="https://raw.githubusercontent.com/brian-mwirigi/codesession-cli/main/docs/screenshots/dashboard-overview.png" alt="Dashboard Overview" width="800">
-  <p><em>Real-time cost tracking, session analytics, and model breakdown</em></p>
-</div>
-
-<details>
-<summary>View More Screenshots</summary>
-
-### Session Detail View
-<img src="https://raw.githubusercontent.com/brian-mwirigi/codesession-cli/main/docs/screenshots/session-detail.png" alt="Session Detail" width="800">
-
-### AI Usage with Agent Tracking
-<img src="https://raw.githubusercontent.com/brian-mwirigi/codesession-cli/main/docs/screenshots/agent-tracking.png" alt="Agent Tracking" width="800">
-
-### Cost Charts & Analytics
-<img src="https://raw.githubusercontent.com/brian-mwirigi/codesession-cli/main/docs/screenshots/cost-charts.png" alt="Cost Charts" width="800">
-
-</details>
-
----
-
-## The Problem
-
-Your AI agent just ran for 45 minutes. It made 23 API calls, edited 15 files, and created 4 commits.
-
-**You have no idea what it cost.**
-
-OpenClaw, Claude Code, custom agents — they all burn tokens with zero visibility. You find out when the bill arrives.
-
-## The Solution
-
-One command to start tracking. Everything logged automatically.
-
-```bash
-# Start tracking an agent run
-cs start "Fix authentication bug"
-
-# Agent does its thing... (files, commits, AI calls tracked automatically)
-
-# End and see the damage
-cs end
-# Session: 47m • 15 files • 4 commits • $8.47 AI cost
-```
-
-## Works With
-
-- **[OpenClaw](https://openclaw.ai)** — Ships as an OpenClaw skill ([install from ClawHub](#openclaw-skill))
-- **Claude Code** — Track autonomous coding sessions
-- **Custom agents** — Programmatic API with budget enforcement
-- **Manual sessions** — Track your own coding time and costs
-
-## Installation
-
-### Prerequisites
-
-codesession-cli uses an embedded SQLite database ([better-sqlite3](https://github.com/WiseLibs/better-sqlite3)) which requires C/C++ build tools to compile:
-
-| OS | Install build tools |
-|---|---|
-| **Ubuntu/Debian** | `sudo apt-get install -y build-essential python3` |
-| **macOS** | `xcode-select --install` |
-| **Windows** | `npm install -g windows-build-tools` or install [Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) |
-| **Alpine** | `apk add build-base python3` |
-
-> **Note:** If prebuilt binaries are available for your platform, compilation is skipped automatically.
-
-### Install
+## Install
 
 ```bash
 npm install -g codesession-cli
 ```
 
-## Quick Start (for Agents)
+> Requires Node.js 18+ and C/C++ build tools ([details](#build-tools)).
 
-If you use OpenClaw, Claude Code, or any AI agent framework, this is for you. All commands support `--json` for machine-readable output:
+---
 
-```bash
-# Start tracking (--close-stale handles crashed sessions)
-cs start "Fix authentication bug" --close-stale --json
-# {"schemaVersion":1,"id":42,"name":"Fix authentication bug","status":"active",...}
-
-# Log each AI call (cost auto-calculated from built-in pricing)
-cs log-ai -p anthropic -m claude-sonnet-4 --prompt-tokens 8000 --completion-tokens 2000 --agent "Code Review Bot" --json
-
-# Check spend mid-session
-cs status --json
-# {"id":42,"aiCost":3.47,"aiTokens":89000,...}
-
-# End session
-cs end -n "Auth complete, all tests passing" --json
-# {"id":42,"duration":847,"filesChanged":12,"aiCost":4.80,...}
-```
-
-Files and git commits are tracked automatically -- no extra commands needed.
-
-### Agent Workflow
-
-```mermaid
-graph LR
-    A[Start Session] --> B[Agent Works]
-    B --> C[Log AI Calls]
-    C --> D{More Work?}
-    D -->|Yes| B
-    D -->|No| E[End Session]
-    E --> F[View Dashboard]
-
-    B -.->|Auto-tracked| G[File Changes]
-    B -.->|Auto-tracked| H[Git Commits]
-    C -.->|Tracked| I[Tokens & Cost]
-
-    style A fill:#4CAF50
-    style E fill:#2196F3
-    style F fill:#FF9800
-```
-
-**Typical agent flow:**
-1. `cs start "Task name" --json --close-stale` - Creates session
-2. Agent performs work (files, commits auto-tracked)
-3. `cs log-ai -p anthropic -m claude-sonnet-4 --agent "Agent Name" --json` - Log each AI call
-4. `cs status --json` - Check costs mid-session
-5. `cs end -n "Task complete" --json` - Finalize and summarize
-6. `cs dashboard` - Review analytics
-
-### CLI Usage (Manual / Interactive)
-
-For human developers tracking their own sessions:
+## Quick Start — one command
 
 ```bash
-# Start a session
-cs start "Build user auth"
+cs run python my_agent.py
+```
 
-# Log AI usage
-cs log-ai -p anthropic -m claude-sonnet-4 --prompt-tokens 8000 --completion-tokens 2000
+That's it. No extra terminals, no env vars, no `cs start` / `cs end` to remember.
 
-# Or provide cost manually
-cs log-ai -p anthropic -m claude-opus-4-6 -t 15000 -c 0.30
+`cs run` automatically:
+1. Starts a tracking session
+2. Launches a local API proxy that intercepts Anthropic + OpenAI calls
+3. Runs your command with the proxy pre-configured
+4. Ends the session and prints a cost summary when your command exits
 
-# Check current costs mid-session
-cs status
+```
+  ● codesession  python my_agent.py
+  ↳ proxy active  http://127.0.0.1:3739  (API calls auto-tracked)
+  ↳ tracking files, commits, AI usage
 
-# End session
-cs end -n "Auth complete, all tests passing"
+  [your agent runs here]
 
-# View session history
-cs list
-cs show --files --commits
-cs stats
+  ✓ Done  python my_agent.py
+    14m  •  8 files  •  2 commits  •  $1.43 AI cost
+    top model: claude-sonnet-4  (38,000 tokens)
 
-# Export sessions
-cs export --format csv
-cs export --format json --limit 10
+    cs show       full breakdown
+    cs dashboard
+```
+
+Options:
+
+```bash
+cs run --name "Fix auth bug" python agent.py   # custom session name
+cs run --port 4000 node agent.js               # custom proxy port
+cs run --no-proxy python agent.py              # session only, no proxy
 ```
 
 ---
 
-## Proxy Mode (Zero-Config Auto-Tracking)
+## What's tracked
 
-> **Requires no skill file or MCP** — works with any tool that calls the Anthropic or OpenAI API.
-
-Start the local proxy, point your env vars at it, and every API call is automatically tracked to the active session. Your API key travels through `127.0.0.1` only and is forwarded directly to the real upstream — it is **never stored, logged, or written to disk**.
-
-```bash
-# Start the proxy (default port 3739)
-cs proxy
-
-# Or choose a custom port
-cs proxy --port 4000
-```
-
-On startup, the proxy prints the two env vars to set:
-
-```
-✓ Proxy listening on http://127.0.0.1:3739
-  set ANTHROPIC_BASE_URL=http://127.0.0.1:3739
-  set OPENAI_BASE_URL=http://127.0.0.1:3739
-```
-
-Export them in your shell (or add to `.env`), then use Claude/OpenAI clients as normal:
-
-```bash
-export ANTHROPIC_BASE_URL=http://127.0.0.1:3739
-export OPENAI_BASE_URL=http://127.0.0.1:3739
-
-# start a session, then your agent runs normally
-cs start "Build checkout flow"
-python my_agent.py     # tokens & cost auto-logged
-cs end
-```
-
-### Security guarantees
-
-| Guarantee | How |
+| Data | How |
 |---|---|
-| Localhost-only | Binds to `127.0.0.1` — never `0.0.0.0` |
-| No prompt storage | Request/response bodies are forwarded and discarded |
-| No key storage | `Authorization` header forwarded, never written to DB |
-| SSRF impossible | Upstream hosts are hardcoded (`api.anthropic.com`, `api.openai.com`) |
-| 10 MB body cap | Prevents memory exhaustion |
-| No error leakage | 502 returns generic `"upstream connection failed"` — no stack traces |
+| **AI cost + tokens** | Auto-captured through the proxy (or `cs log-ai` manually) |
+| **Files changed** | Filesystem watcher + git diff on close |
+| **Git commits** | Git log polling during the session |
+| **Duration** | Wall clock, start to end |
 
-Health check:
+Everything stored locally at `~/.codesession/sessions.db`. No cloud. No telemetry.
+
+---
+
+## What's New in v2.5.0
+
+- **`cs run <command>`** — one command wraps everything: session + proxy + run + cost summary
+- **`cs proxy --session "name"`** — auto-start a session when starting the proxy (no separate `cs start` needed)
+- **Smarter proxy output** — shows live session name, auto-detects Windows vs Unix env var syntax, warns when no session active
+
+[Full Changelog →](https://github.com/brian-mwirigi/codesession-cli/blob/main/CHANGELOG.md)
+
+---
+
+## Manual flow
+
+For long-running interactive sessions or when you need more control:
 
 ```bash
-curl http://127.0.0.1:3739/health
-# {"status":"running","activeSession":{"id":5,"name":"Build checkout flow",...}}
+cs start "my task"
+
+# In another terminal — auto-starts a session too:
+cs proxy --session "my task"
+
+# In your agent shell
+export ANTHROPIC_BASE_URL=http://127.0.0.1:3739
+export OPENAI_BASE_URL=http://127.0.0.1:3739/v1
+
+python agent.py
+
+cs end
+cs show
+```
+
+Or log manually without the proxy:
+
+```bash
+cs start "my task"
+cs log-ai -p anthropic -m claude-sonnet-4 --prompt-tokens 8000 --completion-tokens 2000
+cs end
 ```
 
 ---
 
 ## Web Dashboard
 
-See all your session data in a browser:
-
 ```bash
 cs dashboard
 ```
 
-Opens a local web app at `http://localhost:3737` with five pages:
+Opens `http://localhost:3737` with:
 
-### Overview
-- KPI cards: total sessions, cost, time, avg duration, avg cost, files changed, commits
-- Daily cost area chart (30 days) with spend projection (avg daily + projected monthly)
-- Daily token usage bar chart (prompt vs completion)
-- Sessions per day chart
-- Most expensive sessions table
-- Cost velocity chart ($/hr per session)
+- **Overview** — daily cost chart, total spend, cost velocity
+- **Session detail** — timeline of files, commits, AI calls, notes
+- **Models** — per-model cost/token breakdown, prompt:completion ratio
+- **Insights** — file hotspots, activity heatmap, per-project cost
+- **Alerts** — daily/session budget thresholds with browser notifications
 
-### Sessions
-- Searchable, sortable session table with status badges
-- Cost/hr column, pagination, JSON/CSV export buttons
-- Click into any session for full detail:
-  - Unified timeline (files, commits, AI calls, notes in chronological order)
-  - Tabs: Timeline, Files, Commits, AI Calls, Notes
-  - Stat row: duration, cost, cost/hr, tokens, prompt:completion ratio, files, commits
-  - Working directory and Git HEAD metadata
-
-### Models & Providers
-- Per-model and per-provider cost/token/call breakdown
-- Cost by model pie chart
-- Token usage by model stacked bar chart (top 10)
-- Prompt:completion ratio analysis with inline distribution bars
-- Full model table with avg cost/call
-
-### Insights
-- **File Hotspots** — most frequently changed files across all sessions with churn bars
-- **Activity Heatmap** — sessions by day-of-week and hour (7x24 grid)
-- **Projects** — per-project cost, sessions, duration, files, commits, tokens; cost bar chart
-- **Pricing** — model pricing table (input/output per 1M tokens)
-
-### Alerts
-- Set daily, total, and per-session cost thresholds
-- Visual progress bars showing spend vs limit
-- Alarm mode: browser notifications + sound when budgets are exceeded
-- Status badges: active rules, alarm count, triggered alerts
-- Sessions over limit table
-
-### Start Fresh
-- "Start Fresh" button in the sidebar to reset all session data
-- Confirmation modal listing everything that will be deleted
-- Clears sessions, AI usage, file changes, commits, and alert thresholds
-
-Options:
-- `--port <port>` -- custom port (default: 3737)
-- `--host <host>` -- bind address (default: `127.0.0.1`; use `0.0.0.0` to expose on network -- prints a loud warning)
-- `--no-open` -- don't auto-open browser
-- `--json` -- machine-readable startup output: `{ url, port, pid, host, apiVersion, token? }`
-
-**Security:** The dashboard binds to `127.0.0.1` only by default and exposes only your local session data. It does not send telemetry, phone home, or open any external connections. When bound to a non-localhost address (`--host 0.0.0.0`), a random session token is generated and required for all API requests.
-
-**Port safety:** The dashboard writes a PID file (`~/.codesession/dashboard-<port>.pid`). On restart it only kills a stale process if the PID file matches -- it never blindly kills whatever is on the port.
-
-**API versioning:** All endpoints are available at `/api/v1/*` (canonical) and `/api/*` (backward-compatible alias). Responses include an `X-Codesession-Api-Version: 1` header.
+<div align="center">
+  <img src="https://raw.githubusercontent.com/brian-mwirigi/codesession-cli/main/docs/screenshots/dashboard-overview.png" alt="Dashboard Overview" width="800">
+</div>
 
 ---
 
-## OpenClaw Skill
+## Proxy security
 
-codesession-cli ships as an [OpenClaw](https://openclaw.ai) skill. The skill is at [Codesession](https://clawhub.ai/brian-mwirigi/codesession) Three commands to get started:
+The proxy binds to `127.0.0.1` only and never stores prompt text or API keys.
 
-```bash
-npm install -g codesession-cli   # 1. Install the CLI
-clawhub install codesession      # 2. Install the skill
-# 3. Start a new OpenClaw session — the agent picks it up automatically
-```
+| Guarantee | How |
+|---|---|
+| Localhost-only | Binds `127.0.0.1`; 403 for any non-loopback connection |
+| No prompt storage | Request bodies forwarded and discarded immediately |
+| No key storage | `Authorization` forwarded only, never written to DB |
+| SSRF-proof | Upstream hosts hardcoded (`api.anthropic.com`, `api.openai.com`) |
+| Memory cap | 10 MB incoming + 10 MB response buffer limit |
+| No error leakage | 502 returns `"upstream connection failed"` — no stack traces |
 
-> **Full walkthrough with example transcript:** [docs/integrations/openclaw.md](docs/integrations/openclaw.md)
-
-<details>
-<summary>Manual install (without ClawHub)</summary>
-
-```bash
-cp -r $(npm root -g)/codesession-cli/skills/codesession ~/.openclaw/skills/
-```
-</details>
-
-### What it does
-
-Once installed, the OpenClaw agent will:
-
-1. Run `cs start "task name"` at the beginning of each task
-2. Log API usage with `cs log-ai` after each AI call
-3. Check costs with `cs status --json` during long tasks
-4. Run `cs end` when the task completes
-
-### Example: Agent run tracked by codesession
-
-```
-You: Fix the payment processing bug and add retry logic
-
-Agent: Starting session tracking...
-  $ cs start "Fix payment processing + retry"
-  Session started
-
-  [Agent works: reads files, edits code, runs tests...]
-  $ cs log-ai -p anthropic -m claude-opus-4-6 --prompt-tokens 8000 --completion-tokens 4000
-  $ cs log-ai -p anthropic -m claude-opus-4-6 --prompt-tokens 12000 --completion-tokens 6000
-  $ cs log-ai -p anthropic -m claude-opus-4-6 --prompt-tokens 5000 --completion-tokens 3000
-
-  $ cs end -n "Fixed payment bug, added exponential backoff retry"
-  Session ended
-
-  Session: 12m • 6 files • 2 commits • $0.76 AI cost
-```
-
-After 50 agent runs:
-
-```bash
-$ cs stats
-┌──────────────┬────────────────┐
-│ Total Sessions│ 50            │
-│ Total Time   │ 8h 34m        │
-│ Files Changed│ 312           │
-│ Commits      │ 87            │
-│ Total AI Cost│ $47.23        │
-└──────────────┴────────────────┘
-```
+Health check: `curl http://127.0.0.1:3739/health`
 
 ---
 
-## Programmatic API (for agent frameworks)
+## All commands
 
-Build codesession tracking directly into your agent:
+| Command | What it does |
+|---|---|
+| `cs run <cmd>` | **One command: session + proxy + run + summary** |
+| `cs start <name>` | Start a session manually |
+| `cs end [-n notes]` | End active session |
+| `cs status` | Show active session cost/tokens |
+| `cs proxy [--session name]` | Start the API proxy |
+| `cs log-ai -p <p> -m <m>` | Log AI usage manually |
+| `cs show [id]` | Full session breakdown |
+| `cs list` | Recent sessions |
+| `cs stats` | All-time totals |
+| `cs dashboard` | Web analytics UI |
+| `cs note <text>` | Add timestamped annotation |
+| `cs recover` | End stale sessions |
+| `cs export --format json\|csv` | Export session data |
+| `cs pricing list\|set\|reset` | Manage model prices |
+| `cs mcp` | Start MCP server (Claude Code integration) |
 
-```typescript
-import { AgentSession, BudgetExceededError } from 'codesession-cli/agents';
+All commands accept `--json` for machine-readable output.
 
-const session = new AgentSession('Refactor auth module', {
-  budget: 5.00,        // Hard cap: stop at $5
-  directory: './src',   // Watch this directory
-  git: true,           // Track commits
-});
+---
 
-session.start();
+## Agent + MCP integration
 
-// After each AI call — with granular tokens (cost auto-calculated)
-session.logAI('anthropic', 'claude-opus-4-6', 15000, 0.30, {
-  promptTokens: 10000,
-  completionTokens: 5000,
-});
+### Claude Code / OpenClaw
 
-// Pre-flight check
-if (!session.canAfford(2.00)) {
-  console.log('Switching to cheaper model...');
-}
-
-// Budget enforcement is automatic
-try {
-  session.logAI('openai', 'gpt-4o', 50000, 4.80);
-} catch (e) {
-  if (e instanceof BudgetExceededError) {
-    console.log(`Stopped at $${e.spent} (limit: $${e.budget})`);
-  }
-}
-
-const summary = session.end();
-// { duration: 847, filesChanged: 12, aiCost: 4.80, commits: 3, ... }
+```bash
+clawhub install codesession
 ```
 
-### `runAgentSession` helper
+Once installed, the agent runs `cs start`, `cs log-ai`, and `cs end` automatically.
 
-Wraps start/end/error handling automatically:
+### Programmatic API
 
 ```typescript
 import { runAgentSession } from 'codesession-cli/agents';
 
 const summary = await runAgentSession(
-  'Fix all linting errors',
-  { budget: 3.00, directory: './src' },
+  'Fix auth bug',
+  { budget: 5.00, directory: './src', git: true },
   async (session) => {
-    // Your agent logic
-    const response = await anthropic.messages.create({ ... });
-    session.logAI('anthropic', 'claude-sonnet-4-5', tokens, cost);
+    const res = await anthropic.messages.create({ ... });
+    session.logAI('anthropic', 'claude-sonnet-4', promptTokens, completionTokens);
   }
 );
+// { duration: 720, filesChanged: 8, aiCost: 1.43, commits: 2 }
+```
 
-console.log(`Done: ${summary.filesChanged} files, $${summary.aiCost}`);
+Full API: `AgentSession`, `BudgetExceededError`, `runAgentSession` — see [src/agents.ts](src/agents.ts).
+
+### MCP server
+
+```bash
+cs mcp
+```
+
+Tools: `session_status`, `start_session`, `end_session`, `log_ai_usage`, `add_note`, `get_stats`, `list_sessions`, `check_budget`.
+
+---
+
+## Pricing
+
+Built-in pricing for 25+ models (Anthropic, OpenAI including Codex, Google, Mistral, DeepSeek). Override or add models:
+
+```bash
+cs pricing list
+cs pricing set my-model 5.00 15.00    # $5/M input, $15/M output
+cs pricing reset                       # revert to defaults
 ```
 
 ---
 
-## All Commands
+## Data & privacy
 
-| Command | Description |
-|---------|-------------|
-| `cs start <name>` | Start tracking a session |
-| `cs start --resume` | Resume existing session for current directory |
-| `cs start --close-stale` | Auto-close orphaned sessions, then start |
-| `cs end [-n notes] [-s id]` | End session (active or by ID) |
-| `cs status [-s id]` | Show active session (or specific session) |
-| `cs show [id] [--files] [--commits]` | Show session details |
-| `cs list [-l limit]` | List recent sessions |
-| `cs stats` | Overall statistics |
-| `cs log-ai -p <provider> -m <model> [opts]` | Log AI usage (cost auto-derived or manual) |
-| `cs note <message> [-s id]` | Add timestamped annotation to session |
-| `cs recover [--max-age hours]` | Auto-end stale sessions older than N hours |
-| `cs export [--format json\|csv] [--limit n]` | Export sessions as JSON or CSV |
-| `cs dashboard [--port] [--host] [--no-open] [--json]` | Open web analytics dashboard |
-| `cs pricing list` | Show all model prices (built-in + custom) |
-| `cs pricing set <model> <in> <out>` | Set custom pricing per 1M tokens |
-| `cs pricing set --provider <p> <model> <in> <out>` | Set pricing namespaced by provider |
-| `cs pricing reset` | Remove custom overrides, revert to defaults |
+- Stored at `~/.codesession/sessions.db` (SQLite, WAL mode)
+- No telemetry. No cloud sync. No external connections.
+- Dashboard binds `127.0.0.1` by default. Use `--host 0.0.0.0` to expose on a network — a random session token is auto-generated when you do.
 
-All commands support `--json` for machine-readable output.
+---
 
-### log-ai options
+## Build tools
 
-| Flag | Description |
-|------|-------------|
-| `-p, --provider` | AI provider (required) |
-| `-m, --model` | Model name (required) |
-| `-t, --tokens` | Total tokens |
-| `--prompt-tokens` | Prompt/input tokens |
-| `--completion-tokens` | Completion/output tokens |
-| `-c, --cost` | Cost in USD (auto-calculated if omitted for known models) |
-| `-s, --session <id>` | Target a specific session instead of the active one |
+<details>
+<summary>Required for SQLite compilation on first install</summary>
 
-### Concurrency & multiple repos
+| OS | Command |
+|---|---|
+| Ubuntu/Debian | `sudo apt-get install -y build-essential python3` |
+| macOS | `xcode-select --install` |
+| Windows | [Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) |
+| Alpine | `apk add build-base python3` |
 
-Multiple agents or repos on the same machine can safely run concurrently:
+Prebuilt binaries are available for most platforms — compilation is usually skipped.
+</details>
 
-```bash
-# Terminal 1 (repo A)
-cd ~/project-a && cs start "Fix bug" --close-stale
-cs log-ai -p anthropic -m claude-sonnet-4 --prompt-tokens 5000 --completion-tokens 1000
-
-# Terminal 2 (repo B) — target by session ID
-cd ~/project-b && cs start "Add feature" --close-stale
-cs log-ai -p openai -m gpt-4o -t 8000 -c 0.04 -s 42
-```
-
-SQLite WAL mode ensures writes don't block each other.
-
-### Crash resilience
-
-If an agent dies mid-session, the next `cs start` won't leave orphans:
-
-```bash
-# Resume the existing session for this directory
-cs start "Continue work" --resume
-
-# Or auto-close all stale sessions first
-cs start "Fresh start" --close-stale
-
-# Bulk-recover: end all sessions older than 12 hours
-cs recover --max-age 12
-```
-
-### Session annotations
-
-Add timestamped notes within a session for sub-task visibility:
-
-```bash
-cs note "Starting refactor phase"
-cs note "Tests passing, moving to docs"
-```
-
-Annotations appear in `cs show --json` under the `annotations` array.
-
-## Data Storage
-
-All data stored locally in `~/.codesession/sessions.db` (SQLite with WAL mode for concurrent access).
-
-No telemetry. No cloud. 100% local.
-
-> **Migration from v1.3.x:** Data is auto-migrated from `~/.devsession/` to `~/.codesession/` on first run. The migration **copies** files — it does **not** delete the old directory. If both directories exist, `~/.codesession/` wins (the old one is ignored). After confirming everything works, you can safely delete `~/.devsession/` manually. The migration message is printed to stderr so it doesn't break `--json` stdout.
-
-## How tracking works
-
-**File changes** — Detected via [chokidar](https://github.com/paulmillr/chokidar) filesystem watcher (when running in long-lived mode, i.e. `cs start` without `--json`). Watches the working directory for `add`, `change`, and `unlink` events. Ignores `node_modules`, `dist`, `build`, `.git`, and dotfiles. Rapid changes to the same file are deduplicated within a 1-second window.
-
-**Commits** — Detected by polling `git log` every 10 seconds (via [simple-git](https://github.com/steveukx/git-js)). Picks up the latest commit hash in the current repository. Only tracks commits made during the session.
-
-**AI usage** — Explicitly logged via `cs log-ai` (CLI) or `session.logAI()` (API). No API call interception — you report what you used, and codesession records it.
-
-> **Note:** In `--json` mode (typical for agents), the file watcher and commit poller are *not* started — agents call `cs log-ai` and `cs end` as discrete commands. However, on `cs end`, if `startGitHead` was captured at session start, codesession runs `git diff --name-status <startHead>..HEAD` and `git log <startHead>..HEAD` to backfill accurate file and commit counts — even in agent mode.
-
-## Session scoping: git root
-
-Sessions are scoped by **git root**, not by the exact directory you ran `cs start` from. If you run `cs start` from `repo/apps/web`, the session's working directory is resolved to the git repository root (e.g. `repo/`). This prevents accidental session fragmentation when agents or humans run from different subdirectories of the same repo.
-
-If you're not in a git repo, the exact cwd is used as-is.
-
-`cs status --json` includes a `gitRoot` field so you can see the resolved scope.
-
-## Configurable pricing
-
-codesession ships with built-in pricing for 17 models. Override or add models:
-
-```bash
-# See current pricing
-cs pricing list
-
-# Add a custom/fine-tuned model
-cs pricing set my-ft-model 5.00 15.00
-
-# Reset to defaults
-cs pricing reset
-```
-
-Custom pricing is stored in `~/.codesession/pricing.json` and merged with built-in defaults.
-
-Model names can collide across providers. Use `--provider` to namespace:
-
-```bash
-cs pricing set gpt-4o 2.50 10.00 --provider openai
-cs pricing set gpt-4o 3.00 12.00 --provider azure
-# Stored as "openai/gpt-4o" and "azure/gpt-4o"
-```
-
-`cs log-ai` checks `provider/model` first, then falls back to plain `model`.
-
-## Example Output
-
-```bash
-$ cs show
-
-Session: Build user auth
-
-┌──────────────┬────────────────────────────┐
-│ Metric       │ Value                      │
-├──────────────┼────────────────────────────┤
-│ Status       │ Completed                  │
-│ Started      │ Feb 09, 2026 14:30         │
-│ Ended        │ Feb 09, 2026 16:45         │
-│ Duration     │ 2h 15m                     │
-│ Files Changed│ 12                         │
-│ Commits      │ 5                          │
-│ AI Tokens    │ 45,000                     │
-│ AI Cost      │ $2.34                      │
-│ Notes        │ Completed basic auth flow  │
-└──────────────┴────────────────────────────┘
-```
-
-### Example `cs show --json` output
-
-```json
-{
-  "id": 42,
-  "name": "Fix payment processing + retry",
-  "status": "completed",
-  "startTime": "2026-02-09T14:30:00.000Z",
-  "endTime": "2026-02-09T14:42:17.000Z",
-  "duration": 737,
-  "durationFormatted": "12m",
-  "workingDirectory": "/home/user/project",
-  "filesChanged": 6,
-  "commits": 2,
-  "aiTokens": 46000,
-  "aiCost": 1.065,
-  "notes": "Fixed payment bug, added exponential backoff retry",
-  "files": [
-    { "id": 1, "sessionId": 42, "filePath": "src/payments.ts", "changeType": "modified", "timestamp": "2026-02-09T14:32:11.000Z" },
-    { "id": 2, "sessionId": 42, "filePath": "src/retry.ts", "changeType": "created", "timestamp": "2026-02-09T14:35:44.000Z" },
-    { "id": 3, "sessionId": 42, "filePath": "tests/payments.test.ts", "changeType": "modified", "timestamp": "2026-02-09T14:38:20.000Z" }
-  ],
-  "commits": [
-    { "id": 1, "sessionId": 42, "hash": "a1b2c3d", "message": "fix: payment processing null check", "timestamp": "2026-02-09T14:36:00.000Z" },
-    { "id": 2, "sessionId": 42, "hash": "e4f5g6h", "message": "feat: add exponential backoff retry", "timestamp": "2026-02-09T14:41:00.000Z" }
-  ],
-  "aiUsage": [
-    { "id": 1, "sessionId": 42, "provider": "anthropic", "model": "claude-opus-4-6", "tokens": 12000, "promptTokens": 8000, "completionTokens": 4000, "cost": 0.42, "timestamp": "2026-02-09T14:31:05.000Z" },
-    { "id": 2, "sessionId": 42, "provider": "anthropic", "model": "claude-opus-4-6", "tokens": 18000, "promptTokens": 12000, "completionTokens": 6000, "cost": 0.63, "timestamp": "2026-02-09T14:34:22.000Z" },
-    { "id": 3, "sessionId": 42, "provider": "anthropic", "model": "claude-sonnet-4", "tokens": 16000, "promptTokens": 14000, "completionTokens": 2000, "cost": 0.072, "timestamp": "2026-02-09T14:39:50.000Z" }
-  ],
-  "annotations": [
-    { "id": 1, "sessionId": 42, "message": "Starting retry logic implementation", "timestamp": "2026-02-09T14:35:00.000Z" },
-    { "id": 2, "sessionId": 42, "message": "Tests passing, cleaning up", "timestamp": "2026-02-09T14:40:30.000Z" }
-  ]
-}
-```
-
-> All `--json` responses include `schemaVersion` (currently `1`) and `codesessionVersion` (e.g. `"2.0.0"`) at the top level.
+---
 
 ## License
 
-MIT
-
-## Integration Contract (for agent frameworks)
-
-If you're building an agent framework integration (OpenClaw, Claude Code, custom), here's the contract:
-
-### Schema versioning
-
-All `--json` outputs include metadata fields for forward compatibility:
-
-```json
-{
-  "schemaVersion": 1,
-  "codesessionVersion": "2.0.0",
-  ...
-}
-```
-
-Check `schemaVersion` before parsing. If it's higher than what you expect, your integration should warn or degrade gracefully — never silently break.
-
-### Exit codes
-
-| Code | Meaning |
-|------|---------------------------|
-| `0` | Success |
-| `1` | Error (always — including `--json` mode) |
-
-All errors exit `1`, even in `--json` mode. No ambiguity.
-
-### Structured error shape
-
-JSON errors always follow this shape:
-
-```json
-{
-  "schemaVersion": 1,
-  "codesessionVersion": "2.0.0",
-  "error": {
-    "code": "no_active_session",
-    "message": "No active session"
-  }
-}
-```
-
-Error codes: `session_active`, `no_active_session`, `session_not_found`, `missing_tokens`, `unknown_model`. Parse `error.code` — never string-compare `error.message`.
-
-### Non-interactive guarantees
-
-- All commands with `--json` are fully non-interactive (no prompts, no TTY input)
-- `cs start` with `--json` calls `process.exit(0)` — safe for `execSync`
-- Use `--close-stale` or `--resume` to avoid `session_active` errors in automation
-- On **Windows**: `where cs` instead of `which cs` for install detection; all commands work identically on Windows/macOS/Linux
-
-### `cs status --json` contract
-
-Always returns these fields when a session is active:
-
-```json
-{
-  "schemaVersion": 1,
-  "codesessionVersion": "1.7.0",
-  "id": 42,
-  "name": "...",
-  "status": "active",
-  "gitRoot": "/home/user/project",
-  "aiCost": 1.23,
-  "aiTokens": 45000,
-  "liveDuration": 847,
-  "liveDurationFormatted": "14m"
-}
-```
-
-When no session: `{"schemaVersion":1,"error":{"code":"no_active_session","message":"No active session"}}` (exit code 1)
-
-### Pricing source transparency
-
-`cs log-ai --json` returns a `pricing` object so you can debug cost calculations:
-
-```json
-{
-  "pricing": {
-    "source": "built-in",
-    "modelKnown": true,
-    "inputPer1M": 3.0,
-    "outputPer1M": 15.0
-  }
-}
-```
-
-`source` is `"built-in"` | `"custom"` | `"manual"`. If `modelKnown` is `false`, the agent should provide `-c <cost>` explicitly.
-
-### Failsafe: `cs` not installed
-
-Agent skills should check `which cs` (or `where cs` on Windows) before attempting to track. If not available, degrade gracefully — don't block the agent's primary task.
-
-### Recommended agent lifecycle
-
-```
-cs start "task" --close-stale --json  →  capture session ID
-cs note "phase 1: analysis" --json
-[do work, log AI calls]
-cs log-ai -p ... -m ... --prompt-tokens ... --completion-tokens ... --json
-cs note "phase 2: implementation" --json
-[do more work]
-cs end -n "summary" --json              →  get final totals
-```
-
-## Author
-
-Built by [Brian Mwirigi](https://github.com/brian-mwirigi)
+MIT © [Brian Mwirigi](https://github.com/brian-mwirigi)
 
 ---
 
 <div align="center">
   <p><strong>Know what your agents cost. Ship with confidence.</strong></p>
-  <p>If codesession-cli saves you money, consider <a href="https://github.com/sponsors/brian-mwirigi">sponsoring</a>, <a href="https://buymeacoffee.com/brianmwirigi">buying me a coffee</a>, or giving it a <a href="https://github.com/brian-mwirigi/codesession-cli">star</a></p>
-  <p>
-    <a href="https://github.com/sponsors/brian-mwirigi"><img src="https://img.shields.io/badge/Sponsor-%E2%9D%A4-pink?logo=github" alt="Sponsor"></a>
-    <a href="https://buymeacoffee.com/brianmwirigi"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-%E2%98%95-yellow?logo=buymeacoffee&logoColor=black" alt="Buy Me a Coffee"></a>
-    <a href="https://github.com/brian-mwirigi/codesession-cli"><img src="https://img.shields.io/github/stars/brian-mwirigi/codesession-cli?style=social" alt="GitHub stars"></a>
-  </p>
+  <a href="https://github.com/sponsors/brian-mwirigi"><img src="https://img.shields.io/badge/Sponsor-%E2%9D%A4-pink?logo=github" alt="Sponsor"></a>
+  <a href="https://buymeacoffee.com/brianmwirigi"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-%E2%98%95-yellow?logo=buymeacoffee&logoColor=black" alt="Buy Me a Coffee"></a>
+  <a href="https://github.com/brian-mwirigi/codesession-cli"><img src="https://img.shields.io/github/stars/brian-mwirigi/codesession-cli?style=social" alt="Star on GitHub"></a>
 </div>
 
 ---
 
 ### Keywords
 
-codesession, codesession-cli, code session, code-session, cs cli, AI cost tracker, AI session tracker, AI agent cost tracking, token tracker, token counter, token usage monitor, LLM cost tracker, LLM spending, API cost monitor, Claude Code cost tracking, Claude Code plugin, Claude Code MCP, OpenClaw skill, Codex cost tracker, GPT cost tracker, Gemini cost tracker, DeepSeek cost tracker, Cursor AI costs, Windsurf AI costs, Cline AI costs, AI budget enforcement, AI spending dashboard, developer tools, devtools, agent observability, agent analytics, session management, coding session tracker, AI developer tools, MCP server, Model Context Protocol
+codesession, codesession-cli, code session, AI cost tracker, AI session tracker, token tracker, LLM cost, API cost monitor, Claude Code, OpenClaw, Codex, GPT, Cursor, Windsurf, Cline, AI budget, agent observability, MCP server, session management
