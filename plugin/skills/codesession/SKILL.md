@@ -45,6 +45,11 @@ Users can view all session data in a web dashboard:
 npx codesession-cli dashboard
 ```
 
-## Proxy Mode (coming in v2.5.0)
+## Proxy Mode & cs run (v2.5.0)
 
-For zero-config tracking without calling `log_ai_usage` manually, users can run `cs proxy` to start a local API proxy (`http://127.0.0.1:3739`). Setting `ANTHROPIC_BASE_URL` and `OPENAI_BASE_URL` to this proxy auto-tracks all calls to the active session. The proxy never stores prompt text or API keys.
+For zero-config tracking, users can either:
+
+1. **`cs run <command>`** — one command that starts a session, starts the proxy, runs the command, and shows a cost summary on exit. No separate terminals needed.
+2. **`cs proxy [--session name]`** — start the proxy and set `ANTHROPIC_BASE_URL` / `OPENAI_BASE_URL` to `http://127.0.0.1:3739`. All API calls are auto-tracked.
+
+The proxy binds to `127.0.0.1` only and never stores prompt text or API keys.

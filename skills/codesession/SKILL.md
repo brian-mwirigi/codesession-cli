@@ -8,7 +8,7 @@ metadata: {"openclaw": {"homepage": "https://github.com/brian-mwirigi/codesessio
 
 Track agent session costs, file changes, and git commits. Enforces budget limits and provides detailed session analytics with a full web dashboard.
 
-**Latest: v2.4.0** - Codex pricing (`codex-mini-latest`, `gpt-5.1-codex-max`, `gpt-5.1-codex-mini`, `gpt-5.3-codex`), security fixes, stability improvements. Proxy mode and test suite in-progress on `main`.
+**Latest: v2.5.0** - `cs run <command>` wraps everything in one step (session + proxy + run + cost summary). Codex pricing, security fixes, proxy mode (`cs proxy --session`).
 
 📦 [npm](https://www.npmjs.com/package/codesession-cli) • ⭐ [GitHub](https://github.com/brian-mwirigi/codesession-cli) • 📝 [Changelog](https://github.com/brian-mwirigi/codesession-cli/blob/main/CHANGELOG.md)
 
@@ -163,20 +163,27 @@ cs pricing set gpt-4o 2.50 10.00 --provider openai
 
 If the model isn't in the pricing table, you must provide `-c <cost>` when logging.
 
-## Proxy mode (zero-config auto-tracking)
+## Proxy mode & cs run (v2.5.0)
 
-> Available in v2.5.0 (currently on `main`, not yet released on npm)
-
-Instead of calling `cs log-ai` after every API call, start the proxy and set two env vars — all calls to Anthropic and OpenAI are auto-tracked:
+The fastest way to track any agent run:
 
 ```bash
-cs proxy            # starts on http://127.0.0.1:3739
-# then set:
-#   ANTHROPIC_BASE_URL=http://127.0.0.1:3739
-#   OPENAI_BASE_URL=http://127.0.0.1:3739
+cs run python my_agent.py
+# or: cs run --name "fix auth" node agent.js
 ```
 
-The proxy binds to `127.0.0.1` only. It never stores prompt text or API keys — only token counts are written to the session database.
+This starts a session, launches the proxy, runs your command, then ends the session and prints a cost summary. No extra terminals, no env vars to export.
+
+If you prefer manual control, start the proxy in one terminal and set env vars:
+
+```bash
+cs proxy --session "my task"   # auto-starts a session too
+# then in your agent shell:
+export ANTHROPIC_BASE_URL=http://127.0.0.1:3739
+export OPENAI_BASE_URL=http://127.0.0.1:3739/v1
+```
+
+The proxy binds to `127.0.0.1` only. It never stores prompt text or API keys — only token counts are written to the session.
 
 ## Budget awareness
 
