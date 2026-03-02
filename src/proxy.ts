@@ -236,14 +236,27 @@ function proxyNonStream(
   res.writeHead(upRes.statusCode ?? 200, safeHeaders);
 
   const chunks: Buffer[] = [];
+  let bytesBuffered = 0;
+  let overLimit = false;
 
   upRes.on('data', (chunk: Buffer) => {
-    chunks.push(chunk);
     res.write(chunk);
+    // Cap how much we buffer for usage parsing — forwarding is unaffected
+    if (!overLimit) {
+      bytesBuffered += chunk.length;
+      if (bytesBuffered <= MAX_BODY_BYTES) {
+        chunks.push(chunk);
+      } else {
+        overLimit = true;
+        // Discard buffered chunks — we can't parse usage but response still flows
+        chunks.length = 0;
+      }
+    }
   });
 
   upRes.on('end', () => {
     res.end();
+    if (overLimit) return; // body too large to parse safely — skip logging
     try {
       const body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
       if (provider === 'anthropic' && body.usage) {
@@ -253,6 +266,8 @@ function proxyNonStream(
       }
     } catch (_) {
       // Not JSON or no usage field — skip logging
+    } finally {
+      chunks.length = 0; // release memory immediately
     }
   });
 
