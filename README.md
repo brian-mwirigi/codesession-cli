@@ -16,6 +16,7 @@
 
   <p>Works with <strong>Claude Code, OpenClaw, Codex, Cursor, Windsurf, Cline</strong> &amp; any AI agent.</p>
   <p><em>Auto-track via skill/MCP &nbsp;·&nbsp; wrap any script with <code>cs run</code> &nbsp;·&nbsp; local API proxy &nbsp;·&nbsp; manual <code>cs log-ai</code> &nbsp;·&nbsp; budget alerts &nbsp;·&nbsp; web dashboard &nbsp;·&nbsp; JSON export &nbsp;·&nbsp; programmatic API</em></p>
+  <p><a href="https://www.brianmunene.me/docs/codesession-cli-docs"><strong>📖 Full Documentation</strong></a></p>
 </div>
 
 ---
@@ -32,7 +33,7 @@ npm install -g codesession-cli
 
 ## Using Claude Code, OpenClaw, or Codex?
 
-Install the skill once. The agent tracks itself — you never have to run a command manually.
+Install the skill once. The agent tracks itself so that you never have to run a command manually.
 
 ```bash
 clawhub install codesession
@@ -282,6 +283,7 @@ MIT © [Brian Mwirigi](https://github.com/brian-mwirigi)
 
 <div align="center">
   <p><strong>Know what your agents cost. Ship with confidence.</strong></p>
+  <p><a href="https://www.brianmunene.me/docs/codesession-cli-docs">📖 Full Docs</a> &nbsp;·&nbsp; <a href="https://github.com/brian-mwirigi/codesession-cli/blob/main/CHANGELOG.md">Changelog</a> &nbsp;·&nbsp; <a href="https://github.com/brian-mwirigi/codesession-cli/issues">Issues</a></p>
   <a href="https://github.com/sponsors/brian-mwirigi"><img src="https://img.shields.io/badge/Sponsor-%E2%9D%A4-pink?logo=github" alt="Sponsor"></a>
   <a href="https://buymeacoffee.com/brianmwirigi"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-%E2%98%95-yellow?logo=buymeacoffee&logoColor=black" alt="Buy Me a Coffee"></a>
   <a href="https://github.com/brian-mwirigi/codesession-cli"><img src="https://img.shields.io/github/stars/brian-mwirigi/codesession-cli?style=social" alt="Star on GitHub"></a>
