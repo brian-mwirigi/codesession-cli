@@ -15,6 +15,7 @@
   </p>
 
   <p>Works with <strong>Claude Code, OpenClaw, Codex, Cursor, Windsurf, Cline</strong> &amp; any AI agent.</p>
+  <p><em>Auto-track via skill/MCP &nbsp;·&nbsp; wrap any script with <code>cs run</code> &nbsp;·&nbsp; local API proxy &nbsp;·&nbsp; manual <code>cs log-ai</code> &nbsp;·&nbsp; budget alerts &nbsp;·&nbsp; web dashboard &nbsp;·&nbsp; JSON export &nbsp;·&nbsp; programmatic API</em></p>
 </div>
 
 ---
