@@ -45,7 +45,8 @@ const SCHEMA_VERSION = 1;
 program
   .name('codesession')
   .description('Track AI coding sessions & agent runs — time, files, commits, costs')
-  .version(VERSION);
+  .version(VERSION)
+  .enablePositionalOptions();
 
 // ─── Helpers ───────────────────────────────────────────────────
 

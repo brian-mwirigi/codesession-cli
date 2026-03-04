@@ -277,12 +277,13 @@ Prebuilt binaries are available for most platforms — compilation is usually sk
 
 ## License
 
-MIT © [Brian Mwirigi](https://github.com/brian-mwirigi)
+MIT © [Brian Munene Mwirigi](https://www.brianmunene.me)
 
 ---
 
 <div align="center">
   <p><strong>Know what your agents cost. Ship with confidence.</strong></p>
+  <p>Built by <a href="https://www.brianmunene.me"><strong>Brian Munene Mwirigi</strong></a> — Full Stack Developer, Nairobi 🇰🇪</p>
   <p><a href="https://www.brianmunene.me/docs/codesession-cli-docs">📖 Full Docs</a> &nbsp;·&nbsp; <a href="https://github.com/brian-mwirigi/codesession-cli/blob/main/CHANGELOG.md">Changelog</a> &nbsp;·&nbsp; <a href="https://github.com/brian-mwirigi/codesession-cli/issues">Issues</a></p>
   <a href="https://github.com/sponsors/brian-mwirigi"><img src="https://img.shields.io/badge/Sponsor-%E2%9D%A4-pink?logo=github" alt="Sponsor"></a>
   <a href="https://buymeacoffee.com/brianmwirigi"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-%E2%98%95-yellow?logo=buymeacoffee&logoColor=black" alt="Buy Me a Coffee"></a>
@@ -293,4 +294,4 @@ MIT © [Brian Mwirigi](https://github.com/brian-mwirigi)
 
 ### Keywords
 
-codesession, codesession-cli, code session, AI cost tracker, AI session tracker, token tracker, LLM cost, API cost monitor, Claude Code, OpenClaw, Codex, GPT, Cursor, Windsurf, Cline, AI budget, agent observability, MCP server, session management
+codesession, codesession-cli, code session, AI cost tracker, AI session tracker, token tracker, LLM cost, API cost monitor, Claude Code, OpenClaw, Codex, GPT, Cursor, Windsurf, Cline, AI budget, agent observability, MCP server, session management, Brian Munene Mwirigi, Brian Mwirigi, brian-mwirigi

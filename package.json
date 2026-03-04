@@ -81,7 +81,7 @@
     "devtools",
     "developer-tools"
   ],
-  "author": "Brian Mwirigi",
+  "author": "Brian Munene Mwirigi <brian@brianmunene.me> (https://www.brianmunene.me)",
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.26.0",
