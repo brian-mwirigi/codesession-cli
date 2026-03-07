@@ -379,6 +379,19 @@ function buildApiRouter(): Router {
     }
   });
 
+  router.get('/changelog', (_req, res) => {
+    try {
+      const changelogPath = join(__dirname, '..', 'CHANGELOG.md');
+      if (!existsSync(changelogPath)) {
+        return res.status(404).json({ error: 'Changelog not found' });
+      }
+      const content = readFileSync(changelogPath, 'utf-8');
+      res.type('text/plain').send(content);
+    } catch (e: unknown) {
+      res.status(500).json({ error: errorMessage(e) });
+    }
+  });
+
   router.get('/version', (_req, res) => {
     try {
       const pkg = require('../package.json');
@@ -528,6 +541,7 @@ export function startDashboard(options: DashboardOptions = {}): void {
   app.get('/donate', sendSpa);
   app.get('/pricing', sendSpa);
   app.get('/help', sendSpa);
+  app.get('/changelog', sendSpa);
 
   // ── Port conflict handling & startup ──────────────────────
 

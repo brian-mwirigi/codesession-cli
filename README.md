@@ -21,6 +21,19 @@
 
 ---
 
+## What's New in v2.5
+
+- **`cs run <command>`** — one command wraps everything: session + proxy + run + cost summary
+- **`cs proxy --session "name"`** — auto-start a session when starting the proxy
+- **`cs today`** — pick up where you left off: git state, TODOs, PRs, session history across all projects
+- **Dashboard Help tab** — full command reference right in the web UI
+- **Dashboard Changelog tab** — see release history right in the dashboard
+- **Smarter proxy output** — shows live session name, auto-detects Windows vs Unix env var syntax
+
+[Full Changelog →](https://github.com/brian-mwirigi/codesession-cli/blob/main/CHANGELOG.md)
+
+---
+
 ## Install
 
 ```bash
@@ -107,18 +120,6 @@ Everything stored locally at `~/.codesession/sessions.db`. No cloud. No telemetr
 
 ---
 
-## What's New in v2.5
-
-- **`cs run <command>`** — one command wraps everything: session + proxy + run + cost summary
-- **`cs proxy --session "name"`** — auto-start a session when starting the proxy
-- **`cs today`** — pick up where you left off: git state, TODOs, PRs, session history across all projects
-- **Dashboard Help tab** — full command reference right in the web UI
-- **Smarter proxy output** — shows live session name, auto-detects Windows vs Unix env var syntax
-
-[Full Changelog →](https://github.com/brian-mwirigi/codesession-cli/blob/main/CHANGELOG.md)
-
----
-
 ## Manual flow
 
 For long-running interactive sessions or when you need more control:
@@ -166,6 +167,7 @@ Opens `http://localhost:3737` with:
 - **Donate** — support the project
 - **Pricing** — view and manage model pricing directly from the dashboard
 - **Help** — full CLI command reference at a glance
+- **Changelog** — release history right in the dashboard
 
 <div align="center">
   <img src="https://raw.githubusercontent.com/brian-mwirigi/codesession-cli/main/docs/screenshots/dashboard-overview.png" alt="Dashboard Overview" width="800">
