@@ -19,6 +19,12 @@
   <p><a href="https://www.brianmunene.me/docs/codesession-cli-docs"><strong>📖 Full Documentation</strong></a></p>
 </div>
 
+<div align="center">
+  <br>
+  <img src="https://raw.githubusercontent.com/brian-mwirigi/codesession-cli/main/docs/demo.svg" alt="codesession-cli demo" width="800">
+  <br><br>
+</div>
+
 ---
 
 ## What's New in v2.6
