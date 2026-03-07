@@ -264,8 +264,8 @@ function FilesTable({ files, sessionId }: { files: FileChange[]; sessionId: numb
     try {
       const text = await fetchDiff(sessionId, filePath);
       setDiffText(text);
-    } catch (err: any) {
-      setDiffText(`(failed to load diff: ${err.message || 'unknown error'})`);
+    } catch (err: unknown) {
+      setDiffText(`(failed to load diff: ${err instanceof Error ? err.message : 'unknown error'})`);
     }
     setLoading(false);
   }, [expandedFile, sessionId]);
@@ -373,8 +373,8 @@ function CommitsTable({ commits, sessionId }: { commits: Commit[]; sessionId: nu
     try {
       const text = await fetchCommitDiff(sessionId, hash);
       setDiffText(text);
-    } catch (err: any) {
-      setDiffText(`(failed to load diff: ${err.message || 'unknown error'})`);
+    } catch (err: unknown) {
+      setDiffText(`(failed to load diff: ${err instanceof Error ? err.message : 'unknown error'})`);
     }
     setLoading(false);
   }, [expandedHash, sessionId]);

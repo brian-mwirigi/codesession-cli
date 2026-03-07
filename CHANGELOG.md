@@ -5,6 +5,20 @@ All notable changes to codesession-cli will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.0] - 2026-03-07
+
+### Added
+- **Dashboard Changelog tab** — view the full release history directly in the web dashboard, with collapsible version entries and color-coded badges
+- **`CHANGELOG.md` included in npm package** — ensures the Changelog tab works for globally installed users
+
+### Changed
+- **Version bump to v2.6.0** — reflects semver-minor scope: `cs today`, dashboard tabs, architecture refactor, programmatic agent API
+- **README restructured** — "What's New" section moved above Install for better first-impression visibility
+
+### Fixed
+- **`catch (err: any)` in SessionDetail.tsx** — two remaining `any` casts replaced with `catch (err: unknown)` + `instanceof Error` check
+- **`JSX.Element` type in Changelog.tsx** — replaced with `ReactElement` for React 19 compatibility
+
 ## [2.5.1] - 2026-03-07
 
 ### Added

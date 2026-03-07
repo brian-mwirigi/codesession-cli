@@ -21,7 +21,7 @@
 
 ---
 
-## What's New in v2.5
+## What's New in v2.6
 
 - **`cs run <command>`** — one command wraps everything: session + proxy + run + cost summary
 - **`cs proxy --session "name"`** — auto-start a session when starting the proxy

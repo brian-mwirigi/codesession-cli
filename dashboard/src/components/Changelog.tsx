@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import type { ReactElement } from 'react';
 import { IconExternalLink } from './Icons';
 
 interface ChangelogEntry {
@@ -51,7 +52,7 @@ function parseChangelog(raw: string): ChangelogEntry[] {
 
 /** Render inline markdown bold **text** → <strong>. */
 function renderInline(text: string) {
-  const parts: (string | JSX.Element)[] = [];
+  const parts: (string | ReactElement)[] = [];
   const re = /\*\*(.+?)\*\*/g;
   let last = 0;
   let match: RegExpExecArray | null;

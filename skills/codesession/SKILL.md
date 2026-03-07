@@ -1,6 +1,6 @@
 ---
 name: codesession
-description: codesession (codesession-cli, code session, code-session) — Track AI agent session costs, tokens, file changes, and git commits. Works with Claude Code, OpenClaw, Codex, GPT, Cursor, Windsurf, Cline & any AI agent. Budget enforcement, auto-pricing, MCP server, web dashboard, alerts, insights. v2.5.1.
+description: codesession (codesession-cli, code session, code-session) — Track AI agent session costs, tokens, file changes, and git commits. Works with Claude Code, OpenClaw, Codex, GPT, Cursor, Windsurf, Cline & any AI agent. Budget enforcement, auto-pricing, MCP server, web dashboard, alerts, insights. v2.6.0.
 metadata: {"openclaw": {"homepage": "https://github.com/brian-mwirigi/codesession-cli", "requires": {"bins": ["cs"]}, "install": [{"id": "npm", "kind": "node", "package": "codesession-cli", "bins": ["cs"], "label": "Install codesession-cli (npm)"}]}}
 ---
 
@@ -8,7 +8,7 @@ metadata: {"openclaw": {"homepage": "https://github.com/brian-mwirigi/codesessio
 
 Track agent session costs, file changes, and git commits. Enforces budget limits and provides detailed session analytics with a full web dashboard.
 
-**Latest: v2.5.1** - `cs run <command>` wraps everything in one step (session + proxy + run + cost summary). `cs today` for multi-project context. Dashboard Help tab, Codex pricing, security fixes.
+**Latest: v2.6.0** - `cs run <command>` wraps everything in one step (session + proxy + run + cost summary). `cs today` for multi-project context. Dashboard Help & Changelog tabs, Codex pricing, security fixes.
 
 📦 [npm](https://www.npmjs.com/package/codesession-cli) • ⭐ [GitHub](https://github.com/brian-mwirigi/codesession-cli) • 📝 [Changelog](https://github.com/brian-mwirigi/codesession-cli/blob/main/CHANGELOG.md)
 
