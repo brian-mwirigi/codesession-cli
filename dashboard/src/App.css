@@ -170,6 +170,17 @@ body {
   color: var(--text-secondary);
 }
 
+.nav-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 6px 0;
+}
+
+.nav-item--help {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
 .sidebar-footer {
   padding: 12px 16px;
   border-top: 1px solid var(--border);
@@ -1874,3 +1885,64 @@ body {
 .pricing-add-hint { color: var(--text-muted); font-size: 13px; margin-bottom: 12px; }
 .pricing-add-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .pricing-error { color: var(--color-danger, #ef4444); font-size: 12px; margin-top: 8px; }
+
+/* ── Help ───────────────────────────────────────────── */
+
+.help-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.help-table th {
+  text-align: left;
+  padding: 10px 16px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+}
+.help-table td {
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+.help-table tr:last-child td {
+  border-bottom: none;
+}
+.help-table tr:hover td {
+  background: var(--bg-hover);
+}
+.help-cmd {
+  font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--accent-muted);
+  color: var(--accent);
+  white-space: nowrap;
+}
+.help-opts {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+}
+.help-docs-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  color: #fff;
+  background: var(--accent);
+  transition: opacity 0.15s;
+  white-space: nowrap;
+}
+.help-docs-link:hover {
+  opacity: 0.9;
+}

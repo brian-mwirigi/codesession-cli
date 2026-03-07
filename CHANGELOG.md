@@ -5,10 +5,51 @@ All notable changes to codesession-cli will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.5.1] - 2026-03-02
+## [2.5.1] - 2026-03-07
+
+### Added
+- **Dashboard Help tab** — full CLI command reference and MCP tools at a glance, accessible from the sidebar
+- **Dashboard Pricing tab** — view and manage model pricing directly from the web UI
+- **Dashboard Donate tab** — support links for GitHub Sponsors and Buy Me a Coffee
+- **`cs today` command** — pick up where you left off: git state, TODOs, PRs, session history across all projects
+  - `cs today init` / `cs today add` / `cs today remove` / `cs today projects` for multi-project management
+  - `--ai` flag for AI-generated summary, `--share` for shareable markdown, `--json` for data export
+- **Programmatic agent API** — `runAgentSession`, `AgentSession`, `BudgetExceededError` for building custom agent tracking
+- **Typed DB layer** — 16 row interfaces replace ~30 `as any` casts across sessions and analytics modules
+- **`formatRelativeTime`** — lightweight relative time formatter (no date-fns dependency) shared across CLI and today command
+- **53 Vitest tests** across 5 suites (db, formatters, agents, today, proxy)
 
 ### Changed
-- Refresh npm README to reflect agent-first layout, docs link, and capability tagline added in 2.5.0
+- **Architecture** — split monolithic `index.ts` (1216→~50 lines) into `src/commands/` modules; split `db.ts` (903 lines) into `src/db/` with 5 focused modules
+- **Shared pricing module** — `src/db/pricing.ts` used by CLI, proxy, MCP server, and dashboard (eliminates duplication)
+- **TypeScript target** — ES2020 → ES2022 (matches Node 18+ engine requirement)
+- **`package.json`** — added `"type": "commonjs"` for explicit module format
+- **Dashboard /help route** — SPA fallback registered so direct navigation and refresh work
+- **`collectPullRequests`** — converted from `execSync` (15s main-thread block) to async `execFile`
+- **`cleanupWatcher` / `stopWatcher`** — now properly async; callers use `void` or `.catch()` to handle the Promise
+
+### Fixed
+- **Reset button always returned 400** — `postApi('/api/reset')` was missing required `?confirm=true` query parameter
+- **Negative `limit` bypassed query cap** — `LIMIT -1` in SQLite returns all rows; now clamped with `Math.max(1, ...)`
+- **`promptTokens: 0` silently dropped** — `0 || undefined` evaluates to `undefined`; changed to `?? undefined`
+- **`duration: 0` treated as falsy** — `s.duration || null` drops legitimate 0-second durations; changed to `??`
+- **Token estimation bug** — `promptTk ?? totalTokens * 0.7` used `??` which doesn't trigger for `0`; replaced with explicit `!= null` check
+- **File change double-counting** — added deduplication via `Set` in both `session.ts` and `run.ts`
+- **`annotations` → `notes`** — fixed JSON output field naming inconsistency in `sessionToJSON`
+- **`rmdirSync` deprecation** — replaced with `rmSync` (DEP0147)
+- **`formatDuration` for sub-minute** — now shows `30s` instead of `0m`; added NaN/negative guard
+- **`formatCost` for small amounts** — shows `$0.0010` instead of `$0.00` for costs under $0.01
+- **Dashboard catch blocks** — all 21 `catch (e: any)` → `catch (e: unknown)` with typed `errorMessage()` helper
+- **Dashboard `err: any`** — server error handlers now use `NodeJS.ErrnoException` for `.code` access
+- **Dashboard query param clamping** — `limit` capped at 1000, `days` capped at 365, `offset` floored at 0
+- **Dashboard build guard** — graceful error message if dashboard build is missing instead of crash
+- **Shell-safe browser launch** — uses `execFile` instead of `exec` to prevent command injection
+- **Dead `require('fs')` / `require('path')`** — removed from `connection.ts` and dashboard DELETE handler
+- **Dead imports** — removed unused `Command` from helpers.ts, `jsonWrap` from run.ts, `recoverStaleSessions` from mcp-server.ts
+- **Watcher cleanup** — `watcher.close()` now properly awaited; `BudgetExceededError` handler ends session
+- **Git error logging** — unexpected git errors now logged instead of silently swallowed
+- **`scanTodos` memory safety** — skips files larger than 1MB
+- **Icons.tsx comment** — corrected "20x20 viewBox" to "24x24 viewBox"
 
 ## [2.5.0] - 2026-03-02
 

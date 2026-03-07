@@ -107,11 +107,13 @@ Everything stored locally at `~/.codesession/sessions.db`. No cloud. No telemetr
 
 ---
 
-## What's New in v2.5.0
+## What's New in v2.5
 
 - **`cs run <command>`** — one command wraps everything: session + proxy + run + cost summary
-- **`cs proxy --session "name"`** — auto-start a session when starting the proxy (no separate `cs start` needed)
-- **Smarter proxy output** — shows live session name, auto-detects Windows vs Unix env var syntax, warns when no session active
+- **`cs proxy --session "name"`** — auto-start a session when starting the proxy
+- **`cs today`** — pick up where you left off: git state, TODOs, PRs, session history across all projects
+- **Dashboard Help tab** — full command reference right in the web UI
+- **Smarter proxy output** — shows live session name, auto-detects Windows vs Unix env var syntax
 
 [Full Changelog →](https://github.com/brian-mwirigi/codesession-cli/blob/main/CHANGELOG.md)
 
@@ -156,10 +158,14 @@ cs dashboard
 Opens `http://localhost:3737` with:
 
 - **Overview** — daily cost chart, total spend, cost velocity
-- **Session detail** — timeline of files, commits, AI calls, notes
+- **Sessions** — paginated session list with search and status filter
+- **Session detail** — timeline of files, commits, AI calls, notes, per-file diffs
 - **Models** — per-model cost/token breakdown, prompt:completion ratio
 - **Insights** — file hotspots, activity heatmap, per-project cost
 - **Alerts** — daily/session budget thresholds with browser notifications
+- **Donate** — support the project
+- **Pricing** — view and manage model pricing directly from the dashboard
+- **Help** — full CLI command reference at a glance
 
 <div align="center">
   <img src="https://raw.githubusercontent.com/brian-mwirigi/codesession-cli/main/docs/screenshots/dashboard-overview.png" alt="Dashboard Overview" width="800">
@@ -203,6 +209,12 @@ Health check: `curl http://127.0.0.1:3739/health`
 | `cs export --format json\|csv` | Export session data |
 | `cs pricing list\|set\|reset` | Manage model prices |
 | `cs mcp` | Start MCP server (Claude Code integration) |
+| `cs today` | Pick up where you left off — git state, TODOs, PRs |
+| `cs today init` | Register current dir as a tracked project |
+| `cs today add <path>` | Add a project to today tracking |
+| `cs today remove <path>` | Remove a project from tracking |
+| `cs today projects` | List tracked projects |
+| `cs auto-log` | Auto-log AI usage from Claude Code hooks |
 
 All commands accept `--json` for machine-readable output.
 

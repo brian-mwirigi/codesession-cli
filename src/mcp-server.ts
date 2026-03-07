@@ -29,8 +29,8 @@ import {
   getNotes,
   addNote,
   loadPricing,
-  recoverStaleSessions,
 } from './db';
+import { estimateCostOrNull } from './pricing';
 import { getGitRoot } from './git';
 
 const pkg = require('../package.json');
@@ -44,16 +44,6 @@ async function resolveSession(directory?: string) {
     return getActiveSessionForDir(scopeDir) || getActiveSession();
   }
   return getActiveSession();
-}
-
-// ── Helper: estimate cost from built-in pricing ───────────────
-
-function estimateCost(model: string, promptTokens: number, completionTokens: number, provider?: string): number | null {
-  const pricing = loadPricing();
-  const key = provider ? `${provider}/${model}` : model;
-  const entry = pricing[key] || pricing[model];
-  if (!entry) return null;
-  return (promptTokens * entry.input + completionTokens * entry.output) / 1_000_000;
 }
 
 // ── Create MCP Server ─────────────────────────────────────────
@@ -228,7 +218,7 @@ server.tool(
     // Auto-calculate cost if not provided
     let finalCost = cost;
     if (finalCost === undefined || finalCost === null) {
-      const estimated = estimateCost(model, promptTokens, completionTokens, provider);
+      const estimated = estimateCostOrNull(model, promptTokens, completionTokens, provider);
       if (estimated !== null) {
         finalCost = Math.round(estimated * 1e10) / 1e10;
       } else {

@@ -26,7 +26,8 @@ import https from 'https';
 import http from 'http';
 import net from 'net';
 import express, { Request, Response, NextFunction } from 'express';
-import { getActiveSession, addAIUsage, loadPricing } from './db';
+import { getActiveSession, addAIUsage } from './db';
+import { estimateCostSimple } from './pricing';
 
 // ── Hardcoded upstream hosts (SSRF prevention) ───────────────
 // These are the ONLY hosts the proxy will ever connect to.
@@ -46,21 +47,6 @@ const HOP_BY_HOP = new Set([
   'connection', 'keep-alive', 'proxy-authenticate', 'proxy-authorization',
   'te', 'trailers', 'transfer-encoding', 'upgrade',
 ]);
-
-// ── Cost estimation (metadata only — no prompt text stored) ──
-
-function estimateCost(
-  model: string,
-  promptTokens: number,
-  completionTokens: number,
-  provider: string,
-): number {
-  const pricing = loadPricing();
-  const namespacedKey = `${provider}/${model}`;
-  const entry = pricing[namespacedKey] || pricing[model];
-  if (!entry) return 0;
-  return (promptTokens * entry.input + completionTokens * entry.output) / 1_000_000;
-}
 
 // ── Log ONLY metadata to active session ──────────────────────
 // IMPORTANT: this function receives token counts only — never prompt text,
@@ -83,7 +69,7 @@ function logUsage(
     const safeModel = String(model).slice(0, 200);
     const safeProvider = String(provider).slice(0, 100);
 
-    const cost = estimateCost(safeModel, promptTokens, completionTokens, safeProvider);
+    const cost = estimateCostSimple(safeModel, promptTokens, completionTokens, safeProvider);
 
     addAIUsage({
       sessionId: session.id!,

@@ -40,6 +40,10 @@ export async function checkForNewCommits(sessionId: number): Promise<void> {
     }
   } catch (error) {
     // Not a git repo or no commits yet — silently ignore
+    // Log unexpected errors for debugging
+    if (error instanceof Error && !error.message.includes('not a git repository') && !error.message.includes('does not have any commits')) {
+      process.stderr.write(`[codesession] git polling error (session ${sessionId}): ${error.message}\n`);
+    }
   } finally {
     session.isChecking = false;
   }
@@ -57,6 +61,10 @@ export async function getGitInfo(sessionId: number): Promise<{ branch: string; h
       hasChanges: !status.isClean(),
     };
   } catch (error) {
+    // Log unexpected git errors (not just "not a git repo")
+    if (error instanceof Error && !error.message.includes('not a git repository')) {
+      process.stderr.write(`[codesession] git info error (session ${sessionId}): ${error.message}\n`);
+    }
     return null;
   }
 }

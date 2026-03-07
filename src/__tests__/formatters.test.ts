@@ -2,9 +2,13 @@ import { describe, it, expect } from 'vitest';
 import { formatDuration, formatCost } from '../formatters';
 
 describe('formatDuration', () => {
+  it('formats sub-minute durations as seconds', () => {
+    expect(formatDuration(0)).toBe('0s');
+    expect(formatDuration(30)).toBe('30s');
+    expect(formatDuration(59)).toBe('59s');
+  });
+
   it('formats seconds under one hour as minutes', () => {
-    expect(formatDuration(0)).toBe('0m');
-    expect(formatDuration(59)).toBe('0m');
     expect(formatDuration(60)).toBe('1m');
     expect(formatDuration(3599)).toBe('59m');
   });
@@ -30,7 +34,12 @@ describe('formatCost', () => {
     expect(formatCost(1)).toBe('$1.00');
     expect(formatCost(0.5)).toBe('$0.50');
     expect(formatCost(12.345)).toBe('$12.35');
-    expect(formatCost(0.001)).toBe('$0.00');
+  });
+
+  it('shows 4 decimal places for very small costs', () => {
+    expect(formatCost(0.001)).toBe('$0.0010');
+    expect(formatCost(0.0099)).toBe('$0.0099');
+    expect(formatCost(0.01)).toBe('$0.01');
   });
 
   it('formats costs without losing precision on display', () => {

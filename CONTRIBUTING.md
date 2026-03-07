@@ -68,17 +68,23 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
 ```
 codesession-cli/
 ├── src/              # Core CLI source code
-│   ├── index.ts      # Main CLI entry point
-│   ├── db.ts         # Database operations
+│   ├── index.ts      # Main CLI entry point (thin orchestrator)
+│   ├── commands/     # CLI command handlers (start, end, run, etc.)
+│   ├── db/           # Database layer (sessions, analytics, pricing, etc.)
+│   ├── formatters.ts # Output formatting utilities
 │   ├── watcher.ts    # File watcher
-│   ├── agents.ts     # Agent tracking
-│   └── mcp-server.ts # MCP server implementation
-├── dashboard/        # Web dashboard
+│   ├── git.ts        # Git polling and diff utilities
+│   ├── agents.ts     # Programmatic agent API
+│   ├── proxy.ts      # Local API proxy
+│   ├── today.ts      # Multi-project context (cs today)
+│   ├── mcp-server.ts # MCP server implementation
+│   └── __tests__/    # Vitest test suites
+├── dashboard/        # Web dashboard (React + Vite)
 │   └── src/
-│       ├── App.tsx   # Main dashboard component
-│       └── components/ # Dashboard UI components
+│       ├── App.tsx   # Main dashboard app with routing
+│       └── components/ # Dashboard UI (Overview, Sessions, Help, etc.)
 ├── scripts/          # Build and utility scripts
-└── docs/            # Documentation
+└── docs/             # Documentation
 ```
 
 ## Coding Guidelines

@@ -208,7 +208,7 @@ export class AgentSession {
     this.assertStarted();
 
     // Stop tracking
-    stopWatcher(this.sessionId!);
+    void stopWatcher(this.sessionId!);
     stopGitPolling(this.sessionId!);
     cleanupGit(this.sessionId!);
 
@@ -330,7 +330,11 @@ export async function runAgentSession(
     await agentFn(session);
   } catch (error) {
     if (error instanceof BudgetExceededError) {
-      // Session already ended by logAI, return summary from DB
+      // Budget exceeded — session may still be active (throw happens before DB write).
+      // End it cleanly so watcher/git resources are released.
+      if (session.isActive) {
+        session.end(`Budget exceeded: $${(error as BudgetExceededError).spent.toFixed(2)} / $${(error as BudgetExceededError).budget.toFixed(2)}`);
+      }
       const dbSession = getSession(session.id!)!;
       const files = getFileChanges(session.id!);
       const commits = getCommits(session.id!);

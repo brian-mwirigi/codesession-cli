@@ -46,5 +46,5 @@ Claude automatically tracks sessions when working on multi-step tasks.
 
 ## Requirements
 
-- Node.js 16+
+- Node.js 18+
 - `codesession-cli` is installed automatically via npx

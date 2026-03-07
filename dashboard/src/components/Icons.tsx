@@ -1,4 +1,4 @@
-/** Inline SVG icons — no emoji, no external deps. Stroke-based, 20x20 viewBox. */
+/** Inline SVG icons — no emoji, no external deps. Stroke-based, 24x24 viewBox. */
 
 interface IconProps {
   size?: number;
@@ -240,5 +240,13 @@ export function IconCpu(p: IconProps) {
     'M9 9h6v6H9z',
     'M9 1v3', 'M15 1v3', 'M9 20v3', 'M15 20v3',
     'M20 9h3', 'M20 14h3', 'M1 9h3', 'M1 14h3',
+  ], p);
+}
+
+export function IconHelpCircle(p: IconProps) {
+  return svgMulti([
+    'M12 12m-10 0a10 10 0 1 0 20 0a10 10 0 1 0-20 0',
+    'M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3',
+    'M12 17h.01',
   ], p);
 }

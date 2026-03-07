@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { Page } from '../App';
 import { fetchApi, postApi } from '../api';
-import { IconOverview, IconSessions, IconModels, IconActivity, IconBarChart, IconBell, IconHeart, IconTag, IconRefreshCw } from './Icons';
+import { IconOverview, IconSessions, IconModels, IconActivity, IconBarChart, IconBell, IconHeart, IconTag, IconHelpCircle, IconRefreshCw } from './Icons';
 
 const NAV: { page: Page; icon: React.ReactNode; label: string }[] = [
   { page: 'overview', icon: <IconOverview size={16} />, label: 'Overview' },
@@ -30,7 +30,7 @@ export default function Sidebar({ page, onNavigate }: Props) {
   const handleReset = async () => {
     setResetting(true);
     try {
-      await postApi('/api/reset');
+      await postApi('/api/reset?confirm=true');
       // Clear alert thresholds from localStorage too
       localStorage.removeItem('cs-spend-thresholds');
       setShowReset(false);
@@ -59,6 +59,16 @@ export default function Sidebar({ page, onNavigate }: Props) {
               <span>{n.label}</span>
             </button>
           ))}
+
+          <div className="nav-divider" />
+
+          <button
+            className={`nav-item nav-item--help${page === 'help' ? ' active' : ''}`}
+            onClick={() => onNavigate('help')}
+          >
+            <span className="nav-icon"><IconHelpCircle size={16} /></span>
+            <span>Help</span>
+          </button>
         </nav>
 
         <div className="sidebar-footer">

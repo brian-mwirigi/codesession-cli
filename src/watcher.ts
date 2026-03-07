@@ -41,12 +41,12 @@ export function startWatcher(sessionId: number, cwd: string): void {
     });
 }
 
-export function stopWatcher(sessionId?: number): void {
+export async function stopWatcher(sessionId?: number): Promise<void> {
   if (sessionId !== undefined) {
     // Stop specific session watcher
     const session = sessions.get(sessionId);
     if (session) {
-      session.watcher.close();
+      await session.watcher.close();
       session.changedFiles.clear();
       // Clear all pending timeouts to prevent leaks
       for (const timeout of session.timeouts) {
@@ -58,7 +58,7 @@ export function stopWatcher(sessionId?: number): void {
   } else {
     // Legacy: stop all watchers (for backwards compatibility)
     for (const [id, session] of sessions.entries()) {
-      session.watcher.close();
+      await session.watcher.close();
       session.changedFiles.clear();
       // Clear all pending timeouts to prevent leaks
       for (const timeout of session.timeouts) {
@@ -70,8 +70,8 @@ export function stopWatcher(sessionId?: number): void {
   }
 }
 
-export function cleanupWatcher(sessionId: number): void {
-  stopWatcher(sessionId);
+export async function cleanupWatcher(sessionId: number): Promise<void> {
+  await stopWatcher(sessionId);
 }
 
 function handleChange(
